@@ -7,6 +7,9 @@
 //
 
 import UIKit
+import com_awareframework_ios_sensor_locations
+import com_awareframework_ios_sensor_core
+import com_awareframework_ios_sensor_applewatch
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -16,6 +19,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        
+        let locationSensor = LocationsSensor(LocationsSensor.Config().apply{config in
+            config.sensorObserver = Observer()
+            config.debug = true
+            config.dbType = DatabaseType.REALM
+            // more configuration...
+        })
+        
+        let appleWatch = AppleWatchSensor(AppleWatchSensor.Config().apply{config in
+            config.debug = true
+            config.dbType = .REALM
+            config.keepOriginalFileFromWatch = true
+//            config.sensorObserver = _AppleWatchObserver()
+        })
+        
+        
+        SensorManager.shared.addSensors([locationSensor, appleWatch])
+        SensorManager.shared.startAllSensors()
+        
         return true
     }
 
@@ -43,4 +65,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
 }
+
+
+class Observer:LocationsObserver {
+    func onExitRegion(data: com_awareframework_ios_sensor_locations.GeofenceData) {
+        
+    }
+    
+    func onEnterRegion(data: com_awareframework_ios_sensor_locations.GeofenceData) {
+        
+    }
+    
+    func onVisit(data: com_awareframework_ios_sensor_locations.VisitData) {
+        
+    }
+    
+    func onHeadingChanged(data: com_awareframework_ios_sensor_locations.HeadingData) {
+        
+    }
+    
+    func onLocationChanged(data: LocationsData) {
+        // print(data)
+    }
+}
+
 

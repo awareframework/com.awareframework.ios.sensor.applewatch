@@ -29,8 +29,31 @@ TODO: Add long description of the pod here.
   # s.social_media_url = 'https://twitter.com/<TWITTER_USERNAME>'
 
   s.ios.deployment_target = '10.0'
+  s.watchos.deployment_target = '8.0'
 
-  s.source_files = 'com.awareframework.ios.sensor.applewatch/Classes/**/*'
+  s.swift_version = '4.0'
+    
+  s.dependency 'DataCompression', '~> 3.8.0'
+
+  # watchos
+#  s.subspec 'watchos' do |sp|
+  s.watchos.frameworks = 'WatchConnectivity','WatchKit', 'HealthKit','CoreMotion','CoreLocation'  # ,'UIKit','Fundation',
+  s.watchos.source_files = ['com.awareframework.ios.sensor.applewatch/Classes/watchos/**/*.swift']
+# end
+  
+  # ios
+  s.ios.dependency 'com.awareframework.ios.sensor.core', '~> 0.5.0'
+  s.ios.frameworks = 'WatchConnectivity'
+  s.ios.source_files = ['com.awareframework.ios.sensor.applewatch/Classes/ios/**/*.swift']
+ 
+  # subpod for a phone
+#  s.subspec 'ios' do |sp|
+#    sp.dependency 'com.awareframework.ios.sensor.core', '~> 0.5.0'
+#    sp.ios.frameworks = 'WatchConnectivity'
+#    sp.ios.source_files = ['com.awareframework.ios.sensor.applewatch/Classes/ios/**/*.swift']
+#  end
+  
+#  s.default_subspec = 'ios'
   
   # s.resource_bundles = {
   #   'com.awareframework.ios.sensor.applewatch' => ['com.awareframework.ios.sensor.applewatch/Assets/*.png']

@@ -1,10 +1,12 @@
 use_frameworks!
 
-platform :ios, '10.0'
-
 target 'com.awareframework.ios.sensor.applewatch_Example' do
+#  pod 'com.awareframework.ios.sensor.applewatch', :path => '../'
   pod 'com.awareframework.ios.sensor.applewatch', :path => '../'
-
+  pod 'com.awareframework.ios.sensor.locations'
+  
+  platform :ios, '10.0'
+#  use_frameworks!
   target 'com.awareframework.ios.sensor.applewatch_Tests' do
     inherit! :search_paths
 
@@ -14,3 +16,13 @@ target 'com.awareframework.ios.sensor.applewatch_Example' do
     pod 'Nimble-Snapshots' , '~> 9.4.0'
   end
 end
+
+target 'com.awareframework.ios.sensor.applewatch_Example Watch App' do
+  #use_frameworks!
+  platform :watchos, '8.0'
+  pod 'com.awareframework.ios.sensor.applewatch', :path => '../'
+end
+
+#target 'com.awareframework.ios.sensor.applewatch_watchos_Example' do
+#  pod 'com.awareframework.ios.sensor.applewatch', :path => '../'
+#end

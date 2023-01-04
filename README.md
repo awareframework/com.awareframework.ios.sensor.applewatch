@@ -18,6 +18,8 @@ it, simply add the following line to your Podfile:
 
 ```ruby
 pod 'com.awareframework.ios.sensor.applewatch'
+pod 'com.awareframework.ios.sensor.applewatch/watch'
+pod 'com.awareframework.ios.sensor.applewatch/phone'
 ```
 
 ## Author

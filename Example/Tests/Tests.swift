@@ -2,7 +2,7 @@
 
 import Quick
 import Nimble
-import com.awareframework.ios.sensor.applewatch
+//import com.awareframework.ios.sensor.applewatch
 
 class TableOfContentsSpec: QuickSpec {
     override func spec() {
