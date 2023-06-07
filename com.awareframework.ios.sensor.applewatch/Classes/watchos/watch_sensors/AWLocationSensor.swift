@@ -100,7 +100,7 @@ public class AWLocationSensor: NSObject, ObservableObject {
             
                     
                 // Add the timer to the current run loop.
-                RunLoop.current.add(self.timer!, forMode: .defaultRunLoopMode)
+                RunLoop.current.add(self.timer!, forMode: .default)
             }
             
             break

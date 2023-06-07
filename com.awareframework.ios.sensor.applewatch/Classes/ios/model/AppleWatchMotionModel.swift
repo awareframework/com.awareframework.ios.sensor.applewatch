@@ -154,3 +154,20 @@ public class AppleWatchLocationData: AwareObject {
         return dict
     }
 }
+
+
+public class AppleWatchAudioClassifierData: AwareObject {
+
+    public static let TABLE_NAME = "appleWatchAudioClassifierData"
+    
+    @objc dynamic public var identifier:String = ""
+    @objc dynamic public var confidence:Double = 0.0
+    
+    public override func toDictionary() -> Dictionary<String, Any> {
+        var dict = super.toDictionary()
+        dict["identifier"] = identifier
+        dict["confidence"] = confidence
+        return dict
+    }
+    
+}

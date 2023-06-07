@@ -6,8 +6,8 @@ PODS:
     - Networking (~> 4.4.0)
     - RealmSwift (~> 10.39)
     - SwiftyJSON (~> 5.0.1)
-  - com.awareframework.ios.sensor.locations (0.1.5):
-    - com.awareframework.ios.sensor.core
+  - com.awareframework.ios.sensor.locations (0.6.1):
+    - com.awareframework.ios.sensor.core (~> 0.6.1)
   - DataCompression (3.8.0)
   - FBSnapshotTestCase (2.1.4):
     - FBSnapshotTestCase/SwiftSupport (= 2.1.4)
@@ -62,9 +62,9 @@ EXTERNAL SOURCES:
     :path: "../"
 
 SPEC CHECKSUMS:
-  com.awareframework.ios.sensor.applewatch: 45d1e57388cd893641733c682756b089032448a9
+  com.awareframework.ios.sensor.applewatch: 509332b06845ee6d41ac585dd1e7f7e571ac930b
   com.awareframework.ios.sensor.core: fbb5538ce29b5235bf65aaf490a3958b6a858765
-  com.awareframework.ios.sensor.locations: 94f3bcae6fe036502f5a1aafd97e0b0c9e1bed6c
+  com.awareframework.ios.sensor.locations: 677fc49cd125970cd2c3f748462c3610a39ec14d
   DataCompression: 630f9e7db6360b4d8929fb72fbd23689ca43bc16
   FBSnapshotTestCase: 094f9f314decbabe373b87cc339bea235a63e07a
   iOSSnapshotTestCase: a670511f9ee3829c2b9c23e6e68f315fd7b6790f
@@ -76,6 +76,6 @@ SPEC CHECKSUMS:
   RealmSwift: 8a69a1cb788cd5865966f49667b130567e07bceb
   SwiftyJSON: 2f33a42c6fbc52764d96f13368585094bfd8aa5e
 
-PODFILE CHECKSUM: 27510c08a4a7527c61f8f2fe931145cd785a7e1c
+PODFILE CHECKSUM: 65b38927962e2f5729d18f25f63ae86cd56e0669
 
 COCOAPODS: 1.12.1

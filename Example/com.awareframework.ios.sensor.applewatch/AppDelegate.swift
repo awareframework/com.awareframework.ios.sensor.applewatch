@@ -31,9 +31,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             config.debug = true
             config.dbType = .REALM
             config.keepOriginalFileFromWatch = true
-//            config.sensorObserver = _AppleWatchObserver()
         })
         
+//        SensorManager.shared.addSensors([appleWatch])
+//        SensorManager.shared.startAllSensors()
         
         SensorManager.shared.addSensors([locationSensor, appleWatch])
         SensorManager.shared.startAllSensors()

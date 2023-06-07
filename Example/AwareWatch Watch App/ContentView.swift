@@ -17,7 +17,7 @@ struct ContentView: View {
     @State var isShowAlert = false
     
     @State private var syncInterval: Double = 5
-    @State private var motionSensorHz: Double = 100
+    @State private var motionSensorHz: Double = 50
     
     @State private var untransferredFiles = [URL]()
     
@@ -32,28 +32,34 @@ struct ContentView: View {
                     if (status) {
                         awareSensor.requestPermissionNotification { success, error in
                             awareSensor.requestPermissionHealthKit { success, error in
-                                awareSensor.start(AWSensorConfig().apply{config in
+                                
+                                AWSensor.shared.start(AWSensorConfig().apply{config in
+                                    // sensor configuration
+                                    config.motionSensorHz = 100
+//                                    config.debug = true
                                     
-                                    config.debug = true
-                                    
-                                    config.motionSensorHz = Int(self.motionSensorHz)
-                                    
-                                    config.activateHRSensor = true
-                                    config.activateAmbientNoiseSensor = true
+                                    // list of activated sensors (set `true` need to use)
                                     config.activateMotionSensor = true
-                                    config.activateRawAudioSensor = true
+                                    
                                     config.activateBatterySensor = true
-                                    config.activateLocationSensor = true
-                                    config.activateHeadingSensor = true
+
+//                                    config.activateAmbientNoiseSensor = true
+//                                    config.activateRawAudioSensor = true
                                     
-                                    config.useLocalConfig = true
-                                    
-                                    config.autoFileTransferInterval = 60  * Int(self.syncInterval)
-                                    config.autoFileTransfer = true
-                                    config.autoRecoveryFileTransfer = true
-                                    
-                                }) 
-                            }                    }
+//                                    config.activateAudioClassificationSensor = true
+//                                    do {
+//                                        let classifier = try  VoiceNoiseClassifier()
+//                                        config.audioClassifierModel = classifier.model
+//                                    } catch  {
+//                                        print(error)
+//                                    }
+                                                                        // file transfer settings
+                                    config.autoFileTransferInterval = 300 // 5 minutes in this case
+                                    config.autoFileTransfer = true  // transfer sensor data during sensing
+                                })
+                                
+                                
+                            }}
                     }else{
                         awareSensor.stop()
                     }
@@ -94,10 +100,38 @@ struct ContentView: View {
                         SyncProgressView()
                     }
                 }
-
+                HStack {
+                    Button("全て同期") {
+                        if let files = getFilesInDir() {
+                            for f in files {
+                                print(f)
+                            }
+                        }
+                    }.disabled(!WCSession.default.isReachable)
+//                    NavigationLink("sync progress") {
+//                        SyncProgressView()
+//                    }
+                }
             }.padding(2)
         }
-       
+    }
+    
+    /**
+     ディレクトリ内のディレクトリ・ファイル名リストを取得します。
+
+     - Parameter dirName: ディレクトリ名
+     - Returns: ディレクトリ・ファイル名リスト
+     */
+    func getFilesInDir() -> [String]? {
+        if let documentDirectory = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true).first {
+            do {
+                let items = try FileManager.default.contentsOfDirectory(atPath: documentDirectory)
+                return items
+            } catch _ {
+         
+            }
+        }
+        return nil
     }
 }
 

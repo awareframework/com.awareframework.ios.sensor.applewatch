@@ -80,22 +80,19 @@ public class AWMotionSensor: NSObject, ObservableObject {
 //            self.motion.startMagnetometerUpdates()
 //        }
 
-        if self.motion.isDeviceMotionAvailable{
-            print("Start Device Motion sensors: interval = \(interval)")
-            self.motion.deviceMotionUpdateInterval = interval
-            self.motion.startDeviceMotionUpdates()
-            // self.motion.showsDeviceMovementDisplay = true
-            // self.motion.startDeviceMotionUpdates(using: .xMagneticNorthZVertical)
-        }
+//        if self.motion.isDeviceMotionAvailable{
+//            print("Start Device Motion sensors: interval = \(interval)")
+//            self.motion.deviceMotionUpdateInterval = interval
+//            self.motion.startDeviceMotionUpdates()
+//            // self.motion.showsDeviceMovementDisplay = true
+//            // self.motion.startDeviceMotionUpdates(using: .xMagneticNorthZVertical)
+//        }
         
-        if CMAltimeter.isAbsoluteAltitudeAvailable() {
-            self.altimeter.startAbsoluteAltitudeUpdates(to: .main) { altitudeData, error in
-//                altitudeData?.altitude
-//                altitudeData?.accuracy
-//                altitudeData?.precision
-                
-            }
-        }
+//        if CMAltimeter.isAbsoluteAltitudeAvailable() {
+//            self.altimeter.startAbsoluteAltitudeUpdates(to: .main) { altitudeData, error in
+//
+//            }
+//        }
         
         // Configure a timer to fetch the data.
         if self.timer == nil {
@@ -115,20 +112,20 @@ public class AWMotionSensor: NSObject, ObservableObject {
                     if (self.accelerations.count > 100) {self.accelerations.removeFirst()}
                 }
                 
-                if let deviceMotion = self.motion.deviceMotion {
-                    self.motions.append(AWRotationLinePoint(date: now,
-                                                          x: deviceMotion.rotationRate.x,
-                                                          y: deviceMotion.rotationRate.y,
-                                                          z: deviceMotion.rotationRate.z))
-                    if (self.motions.count > 100) {self.motions.removeFirst()}
-                }
+//                if let deviceMotion = self.motion.deviceMotion {
+//                    self.motions.append(AWRotationLinePoint(date: now,
+//                                                          x: deviceMotion.rotationRate.x,
+//                                                          y: deviceMotion.rotationRate.y,
+//                                                          z: deviceMotion.rotationRate.z))
+//                    if (self.motions.count > 100) {self.motions.removeFirst()}
+//                }
             
                 self.sensorData?.update(acc: self.motion.accelerometerData,
                                        deviceMotion: self.motion.deviceMotion,
                                        label: self.config.label)
                 
                 let gap = now.timeIntervalSince(self.lastBreakTime)
-                if (gap > Double(self.config.autoFileTransferInterval)){
+                if (gap > Double(self.config.autoFileTransferInterval) && self.config.autoFileTransfer){
                     if let data = self.sensorData {
                         data.closeFileHandler()
                         let originalFileURL = data.filePath
@@ -141,7 +138,7 @@ public class AWMotionSensor: NSObject, ObservableObject {
             });
 
             // Add the timer to the current run loop.
-            RunLoop.current.add(self.timer!, forMode: .defaultRunLoopMode)
+            RunLoop.current.add(self.timer!, forMode: .default)
         }
     }
 

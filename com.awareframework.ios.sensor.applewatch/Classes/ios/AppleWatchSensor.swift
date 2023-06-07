@@ -128,6 +128,8 @@ public class AppleWatchSensor: AwareSensor {
                         saveLocationData(data:decompressedData, path:newPath)
                     } else if (components[0] == "heading") {
                         saveHeadingData(data:decompressedData, path:newPath)
+                    } else if (components[0] == "audio-classifier"){
+                        saveAudioClassifierData(data:decompressedData, path:newPath)
                     }
                 }
             }else {
@@ -447,6 +449,47 @@ extension AppleWatchSensor {
         do {
             try FileManager.default.removeItem(at: path)
         }catch{
+            print(error)
+        }
+    }
+    
+    
+    private func saveAudioClassifierData(data decompressedData: Data, path:URL){
+        let decompressedDataStr = String(data: decompressedData, encoding: .utf8)
+        let csvLines = decompressedDataStr!.components(separatedBy: .newlines)
+        var buffer:[AppleWatchAudioClassifierData] = []
+        
+        var isHeader = true
+        
+        for line in csvLines {
+            if (isHeader) {
+                isHeader = false
+                continue
+            }
+            
+            let elements = line.components(separatedBy: ",")
+            if (elements.count < 2) {
+                continue
+            }
+            
+            let watchAudioData = AppleWatchAudioClassifierData()
+            let timestamp = Int64(Double(elements[0]) ?? 0)
+            watchAudioData.timestamp = timestamp
+            watchAudioData.confidence = Double(elements[2]) ?? 0
+            watchAudioData.identifier = String(elements[1])
+            watchAudioData.label = CONFIG.label
+//            self.CONFIG.sensorObserver?.onAudioChanged(data: watchAudioData.toDictionary())
+            
+            buffer.append(watchAudioData)
+            if buffer.count > 100 {
+                dbEngine?.save(buffer)
+                buffer.removeAll()
+            }
+        }
+        dbEngine?.save(buffer)
+        do {
+            try FileManager.default.removeItem(at: path)
+        } catch {
             print(error)
         }
     }
