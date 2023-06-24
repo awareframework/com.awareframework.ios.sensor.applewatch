@@ -36,16 +36,16 @@ struct ContentView: View {
                                 AWSensor.shared.start(AWSensorConfig().apply{config in
                                     // sensor configuration
                                     config.motionSensorHz = 100
-//                                    config.debug = true
+                                    config.debug = true
                                     
                                     // list of activated sensors (set `true` need to use)
                                     config.activateMotionSensor = true
                                     
                                     config.activateBatterySensor = true
-
+//                                    config.activateBluetoothSensor = true
+                                    
 //                                    config.activateAmbientNoiseSensor = true
 //                                    config.activateRawAudioSensor = true
-                                    
 //                                    config.activateAudioClassificationSensor = true
 //                                    do {
 //                                        let classifier = try  VoiceNoiseClassifier()

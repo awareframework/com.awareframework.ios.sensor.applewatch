@@ -130,6 +130,8 @@ public class AppleWatchSensor: AwareSensor {
                         saveHeadingData(data:decompressedData, path:newPath)
                     } else if (components[0] == "audio-classifier"){
                         saveAudioClassifierData(data:decompressedData, path:newPath)
+                    } else if (components[0] == "bluetooth") {
+                        saveBluetoothData(data:decompressedData, path:newPath)
                     }
                 }
             }else {
@@ -481,6 +483,48 @@ extension AppleWatchSensor {
 //            self.CONFIG.sensorObserver?.onAudioChanged(data: watchAudioData.toDictionary())
             
             buffer.append(watchAudioData)
+            if buffer.count > 100 {
+                dbEngine?.save(buffer)
+                buffer.removeAll()
+            }
+        }
+        dbEngine?.save(buffer)
+        do {
+            try FileManager.default.removeItem(at: path)
+        } catch {
+            print(error)
+        }
+    }
+    
+    
+    
+    private func saveBluetoothData(data decompressedData: Data, path:URL){
+        let decompressedDataStr = String(data: decompressedData, encoding: .utf8)
+        let csvLines = decompressedDataStr!.components(separatedBy: .newlines)
+        var buffer:[AppleWatchBluetoothData] = []
+        
+        var isHeader = true
+        
+        for line in csvLines {
+            if (isHeader) {
+                isHeader = false
+                continue
+            }
+            
+            let elements = line.components(separatedBy: ",")
+            if (elements.count < 2) {
+                continue
+            }
+            
+            let data = AppleWatchBluetoothData()
+            let timestamp = Int64(Double(elements[0]) ?? 0)
+            data.timestamp = timestamp
+            data.identifier = String(elements[1])
+            data.name = String(elements[2])
+            data.rssi = Double(elements[3]) ?? 0
+            data.label = CONFIG.label
+                        
+            buffer.append(data)
             if buffer.count > 100 {
                 dbEngine?.save(buffer)
                 buffer.removeAll()

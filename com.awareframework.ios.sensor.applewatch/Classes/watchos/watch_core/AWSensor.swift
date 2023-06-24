@@ -18,10 +18,10 @@ public class AWSensorConfig {
     public var activateLocationSensor = false
     public var activateHeadingSensor = false
     public var activateAudioClassificationSensor = false
+    public var activateBluetoothSensor = false
     
     public var useLocalConfig = true
     
-
     public var autoFileTransfer = true
     public var autoFileTransferInterval = 60 * 15 // 15 minutes
     public var autoRecoveryFileTransfer = true
@@ -57,6 +57,7 @@ public class AWSensor: NSObject {
     public let hrSensor = AWHealthKitSensor()
     public let batterySensor = AWBatterySensor()
     public let locationSensor = AWLocationSensor()
+    public let bluetoothSensor = AWBluetoothSensor()
 
     let healthStore = HKHealthStore()
     var session : HKWorkoutSession?
@@ -84,6 +85,9 @@ public class AWSensor: NSObject {
                 }
                 if (config.activateLocationSensor || config.activateHeadingSensor) {
                     self.locationSensor.start(config)
+                }
+                if (config.activateBluetoothSensor) {
+                    self.bluetoothSensor.start(config)
                 }
             }
         }else{
@@ -115,7 +119,9 @@ public class AWSensor: NSObject {
                     if (config.activateLocationSensor || config.activateHeadingSensor) {
                         self.locationSensor.start(config)
                     }
-                    
+                    if (config.activateBluetoothSensor) {
+                        self.bluetoothSensor.start(config)
+                    }
                 }
             })
         }
@@ -139,6 +145,7 @@ public class AWSensor: NSObject {
         hrSensor.stop()
         batterySensor.stop()
         locationSensor.stop()
+        bluetoothSensor.stop()
         stopWorkout()
         if let timer = recoveryFileTransferTimer {
             timer.invalidate()
