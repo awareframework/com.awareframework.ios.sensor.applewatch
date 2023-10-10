@@ -9,8 +9,6 @@
 
 To run the example project, clone the repo, and run `pod install` from the Example directory first.
 
-## Requirements
-
 ## Installation
 
 com.awareframework.ios.sensor.applewatch is available through [CocoaPods](https://cocoapods.org). To install
@@ -24,8 +22,31 @@ pod 'com.awareframework.ios.sensor.applewatch/phone'
 
 ## Author
 
-1227623, yuukin@iis.u-tokyo.ac.jp
+Yuuki Nishiyama (The University of Tokyo), yuukin@iis.u-tokyo.ac.jp
 
 ## License
 
-com.awareframework.ios.sensor.applewatch is available under the MIT license. See the LICENSE file for more info.
+com.awareframework.ios.sensor.applewatch is available under the Apache License 2.0. See the LICENSE file for more info.
+
+
+## Citation
+If you find the dataset/codebase helpful in your research, please cite the following paper.
+
+```
+@inproceedings{10.1145/3594739.3612874,
+    title = {Smartwatch-Based Sensing Framework for Continuous Data Collection: Design and Implementation},
+    author = {Yuuki Nishiyama and Kaoru Sezaki},
+    doi = {10.1145/3594739.3612874},
+    isbn = {9798400702006},
+    year = {2023},
+    date = {2023-10-08},
+    urldate = {2023-10-08},
+    booktitle = {Adjunct Proceedings of the 2023 ACM International Joint Conference on Pervasive and Ubiquitous Computing & the 2023 ACM International Symposium on Wearable Computing},
+    pages = {620–625},
+    publisher = {Association for Computing Machinery},
+    address = {Cancun, Quintana Roo, Mexico},
+    series = {UbiComp/ISWC '23 Adjunct},
+    tppubtype = {inproceedings}
+}
+```
+

@@ -23,11 +23,13 @@ struct ContentView: View {
     
     let awareSensor = AWSensor.shared
     
+    @EnvironmentObject private var localConfig:LocalSensorConfig
+    
     var body: some View {
         NavigationView {
             List{
                 Toggle(isOn: $isRunning) {
-                    Text(isRunning ? "on":"off")
+                    Text(isRunning ? "Running":"Not Running").foregroundColor(isRunning ? .green : .red)
                 }.onChange(of: isRunning) { status in
                     if (status) {
                         awareSensor.requestPermissionNotification { success, error in
@@ -35,27 +37,29 @@ struct ContentView: View {
                                 
                                 AWSensor.shared.start(AWSensorConfig().apply{config in
                                     // sensor configuration
-                                    config.motionSensorHz = 100
-                                    config.debug = true
+                                    config.motionSensorHz = Int(localConfig.accHz)
+                                    config.debug = localConfig.debug
                                     
-                                    // list of activated sensors (set `true` need to use)
-                                    config.activateMotionSensor = true
+                                    config.activateMotionSensor = localConfig.accState
+                                    config.activateBatterySensor = localConfig.batteryState
+                                    config.activateLocationSensor = localConfig.locationState
+                                    config.activateRawAudioSensor = localConfig.rawAudioState
+                                    config.activateAmbientNoiseSensor = localConfig.ambientNoiseState
+                                    config.activateAudioClassificationSensor = localConfig.conversationState
+                                    config.activateHeadingSensor = localConfig.locationState
+                                    config.activateHRSensor = localConfig.heartrateState
+                                    config.activateBluetoothSensor = localConfig.bluetoothState
                                     
-                                    config.activateBatterySensor = true
-//                                    config.activateBluetoothSensor = true
+                                    do {
+                                        let classifier = try  VoiceNoiseClassifier()
+                                        config.audioClassifierModel = classifier.model
+                                    } catch  {
+                                        print(error)
+                                    }
                                     
-//                                    config.activateAmbientNoiseSensor = true
-//                                    config.activateRawAudioSensor = true
-//                                    config.activateAudioClassificationSensor = true
-//                                    do {
-//                                        let classifier = try  VoiceNoiseClassifier()
-//                                        config.audioClassifierModel = classifier.model
-//                                    } catch  {
-//                                        print(error)
-//                                    }
-                                                                        // file transfer settings
-                                    config.autoFileTransferInterval = 300 // 5 minutes in this case
-                                    config.autoFileTransfer = true  // transfer sensor data during sensing
+                                    
+                                    config.autoFileTransferInterval = Int(localConfig.fileSyncIntervalMin * 60) // 5 minutes in this case
+                                    config.autoFileTransfer = localConfig.fileTransfer  // transfer sensor data during sensing
                                 })
                                 
                                 
@@ -64,44 +68,40 @@ struct ContentView: View {
                         awareSensor.stop()
                     }
                 }.padding(3)
-                Group {
-                    VStack{
-                        Text("transfer data files every \(Int(syncInterval)) min")
-                        Slider(value: $syncInterval, in: 1...30, step: 1.0).disabled(isRunning).padding(5)
-                    }
+//                Divider()
+                
+                NavigationLink("Settings") {
+                    SensorSettingView()
                 }
-                Group{
-                    NavigationLink("data visualize") {
-                        VisualizerView()
+                
+                NavigationLink("Visualize") {
+                    VisualizerView()
+                }
+                NavigationLink("Sync Progress") {
+                    SyncProgressView()
+                }
+                
+                
+                Button("Recovery Sync") {
+                    untransferredFiles = awareSensor.getUntransferredFiles()
+                    isShowAlert = true
+                }.alert("Push to start manual sync with \($untransferredFiles.count) files", isPresented: $isShowAlert,
+                       actions: {
+                    Button {
+                        isShowAlert = false
+                    } label: {
+                        Text("close")
                     }
-                    Button("recovery file transfer") {
-                        untransferredFiles = awareSensor.getUntransferredFiles()
-                        isShowAlert = true
-                    }
-                    .alert("Push to start manual sync with \($untransferredFiles.count) files", isPresented: $isShowAlert,
-                           actions: {
-                        Button {
-                            isShowAlert = false
-                        } label: {
-                            Text("close")
-                        }
-                        Button(action: {
-                            isShowAlert = false
-                            awareSensor.recoveryFileTransfer()
-                        }, label: {
-                            Text("start")
-                        })
+                    Button(action: {
+                        isShowAlert = false
+                        awareSensor.recoveryFileTransfer()
+                    }, label: {
+                        Text("start")
                     })
-                    .padding(3)
-//                    NavigationLink("untransferred files") {
-//                        UntransferredFilesView()
-//                    }
-                    NavigationLink("sync progress") {
-                        SyncProgressView()
-                    }
-                }
+                }).padding(3)
+
                 HStack {
-                    Button("全て同期") {
+                    Button("Manual Sync") {
                         if let files = getFilesInDir() {
                             for f in files {
                                 print(f)
@@ -112,7 +112,8 @@ struct ContentView: View {
 //                        SyncProgressView()
 //                    }
                 }
-            }.padding(2)
+            }.navigationBarTitleDisplayMode(.automatic)
+            .navigationTitle("AWARE")
         }
     }
     

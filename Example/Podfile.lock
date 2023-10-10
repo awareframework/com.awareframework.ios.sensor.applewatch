@@ -27,11 +27,11 @@ PODS:
     - iOSSnapshotTestCase (~> 8.0)
     - Nimble
   - Quick (2.2.1)
-  - Realm (10.39.1):
-    - Realm/Headers (= 10.39.1)
-  - Realm/Headers (10.39.1)
-  - RealmSwift (10.39.1):
-    - Realm (= 10.39.1)
+  - Realm (10.43.0):
+    - Realm/Headers (= 10.43.0)
+  - Realm/Headers (10.43.0)
+  - RealmSwift (10.43.0):
+    - Realm (= 10.43.0)
   - SwiftyJSON (5.0.1)
 
 DEPENDENCIES:
@@ -72,8 +72,8 @@ SPEC CHECKSUMS:
   Nimble: 5316ef81a170ce87baf72dd961f22f89a602ff84
   Nimble-Snapshots: ef281b908c604f78c8313587e25ea92c8ab513d7
   Quick: f5754d69b7013f5864c29aab9ae6f0c79c5bc200
-  Realm: 1f3157edf145f4d9036765ab550c8cb18f62b700
-  RealmSwift: 8a69a1cb788cd5865966f49667b130567e07bceb
+  Realm: fc65bea3f5c3da2ecdc76324f180e054e7cf4eb0
+  RealmSwift: a7d48361c585769690c175428cc2bf15e1074444
   SwiftyJSON: 2f33a42c6fbc52764d96f13368585094bfd8aa5e
 
 PODFILE CHECKSUM: 65b38927962e2f5729d18f25f63ae86cd56e0669

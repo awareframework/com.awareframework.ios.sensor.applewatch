@@ -48,6 +48,12 @@ public struct AWDecibelLinePoint {
     public var value: Double
 }
 
+public struct AWAudioClassPoint{
+    public var family: String
+    public var date:Date
+    public var confidence:Double
+}
+
 extension AWAudioSensor: SNResultsObserving {
     public func request(_ request: SNRequest, didProduce result: SNResult) {
         
@@ -55,11 +61,17 @@ extension AWAudioSensor: SNResultsObserving {
         guard let result = result as? SNClassificationResult else { return }
        
         DispatchQueue.main.async {
+            let now = Date()
+            
             for c in result.classifications {
                 self.audioClassifierData?.update(identifier: c.identifier, confidence: c.confidence)
+                
+                self.audioClasses.append(AWAudioClassPoint(family: c.identifier, date:now , confidence: c.confidence))
+                if (self.audioClasses.count > 100) {
+                    self.audioClasses.removeFirst()
+                }
             }
             
-            let now = Date()
             let gap = now.timeIntervalSince(self.lastBreakTimeAudioClassifier)
             if (gap > Double(self.config.autoFileTransferInterval)){
                 if let audioClassifierData = self.audioClassifierData {
@@ -95,6 +107,7 @@ final public class AWAudioSensor:NSObject, ObservableObject{
     var audioClassifierData:AWAudioClassifierSensorData?
     
     @Published public var decibels = [AWDecibelLinePoint]()
+    @Published public var audioClasses = [AWAudioClassPoint]()
     
     let fileTransferManager = FileTransferManager()
     

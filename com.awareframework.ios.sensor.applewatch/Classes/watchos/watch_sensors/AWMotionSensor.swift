@@ -68,31 +68,31 @@ public class AWMotionSensor: NSObject, ObservableObject {
             self.motion.startAccelerometerUpdates()
         }
         
-//        if self.motion.isGyroAvailable {
-//            print("Start Gyro sensors: interval = \(interval)")
-//            self.motion.gyroUpdateInterval = interval
-//            self.motion.startGyroUpdates()
-//        }
-//
-//        if self.motion.isMagnetometerAvailable {
-//            print("Start Magnetometer sensor: interval = \(interval)")
-//            self.motion.magnetometerUpdateInterval = interval
-//            self.motion.startMagnetometerUpdates()
-//        }
+        if self.motion.isGyroAvailable {
+            print("Start Gyro sensors: interval = \(interval)")
+            self.motion.gyroUpdateInterval = interval
+            self.motion.startGyroUpdates()
+        }
 
-//        if self.motion.isDeviceMotionAvailable{
-//            print("Start Device Motion sensors: interval = \(interval)")
-//            self.motion.deviceMotionUpdateInterval = interval
-//            self.motion.startDeviceMotionUpdates()
-//            // self.motion.showsDeviceMovementDisplay = true
-//            // self.motion.startDeviceMotionUpdates(using: .xMagneticNorthZVertical)
-//        }
+        if self.motion.isMagnetometerAvailable {
+            print("Start Magnetometer sensor: interval = \(interval)")
+            self.motion.magnetometerUpdateInterval = interval
+            self.motion.startMagnetometerUpdates()
+        }
+
+        if self.motion.isDeviceMotionAvailable{
+            print("Start Device Motion sensors: interval = \(interval)")
+            self.motion.deviceMotionUpdateInterval = interval
+            self.motion.startDeviceMotionUpdates()
+            // self.motion.showsDeviceMovementDisplay = true
+            // self.motion.startDeviceMotionUpdates(using: .xMagneticNorthZVertical)
+        }
         
-//        if CMAltimeter.isAbsoluteAltitudeAvailable() {
-//            self.altimeter.startAbsoluteAltitudeUpdates(to: .main) { altitudeData, error in
-//
-//            }
-//        }
+        if CMAltimeter.isAbsoluteAltitudeAvailable() {
+            self.altimeter.startAbsoluteAltitudeUpdates(to: .main) { altitudeData, error in
+
+            }
+        }
         
         // Configure a timer to fetch the data.
         if self.timer == nil {
@@ -112,13 +112,13 @@ public class AWMotionSensor: NSObject, ObservableObject {
                     if (self.accelerations.count > 100) {self.accelerations.removeFirst()}
                 }
                 
-//                if let deviceMotion = self.motion.deviceMotion {
-//                    self.motions.append(AWRotationLinePoint(date: now,
-//                                                          x: deviceMotion.rotationRate.x,
-//                                                          y: deviceMotion.rotationRate.y,
-//                                                          z: deviceMotion.rotationRate.z))
-//                    if (self.motions.count > 100) {self.motions.removeFirst()}
-//                }
+                if let deviceMotion = self.motion.deviceMotion {
+                    self.motions.append(AWRotationLinePoint(date: now,
+                                                          x: deviceMotion.rotationRate.x,
+                                                          y: deviceMotion.rotationRate.y,
+                                                          z: deviceMotion.rotationRate.z))
+                    if (self.motions.count > 100) {self.motions.removeFirst()}
+                }
             
                 self.sensorData?.update(acc: self.motion.accelerometerData,
                                        deviceMotion: self.motion.deviceMotion,
