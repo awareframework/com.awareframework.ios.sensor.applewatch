@@ -128,7 +128,7 @@ Yuuki Nishiyama (The University of Tokyo), yuukin@iis.u-tokyo.ac.jp
 
 ## License
 
-com.awareframework.ios.sensor.applewatch is available under the Apache License 2.0. See the LICENSE file for more info.
+`com.awareframework.ios.sensor.applewatch` is available under the Apache License 2.0. See the LICENSE file for more info.
 
 
 ## Citation
