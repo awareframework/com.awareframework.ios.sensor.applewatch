@@ -90,7 +90,7 @@ TBD
 
 
 ## Development
-The following source code shows a minimum sample code for collecting sensor data on a smartwatch. A develop has to write source codes on both iOS and wathcOS as followings.
+The following source code shows a minimum sample code for collecting sensor data on a smartwatch. A developer has to write source codes on both iOS and wathcOS as follows.
 
 ### iOS
 ```swift
