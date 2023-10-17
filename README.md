@@ -39,7 +39,7 @@ The following figure illustrates the design of this framework. This framework is
 Battery consumption is dependent on the types and settings of sensors. 
 Our lab study shows that this framework works for 16 to 29 hours with single sensors. High-sampling rate and more extensive data size generated sensors tend to consume battery. 
 
-![battery_consumption](/images/battery_full.PNG)
+![battery_consumption](/images/battery_full.png)
 
 For more detailes, please check out the paper as follows:
 "[Smartwatch-Based Sensing Framework for Continuous Data Collection: Design and Implementation](https：//doi)," Y. Nishiyama and K. Sezaki, UbiComp2023 Workshop (Sensing & Intervention)
