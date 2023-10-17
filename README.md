@@ -42,7 +42,7 @@ Our lab study shows that this framework works for 16 to 29 hours with single sen
 ![battery_consumption](/images/battery_full.png)
 
 For more detailes, please check out the paper as follows:
-"[Smartwatch-Based Sensing Framework for Continuous Data Collection: Design and Implementation](https：//doi)," Y. Nishiyama and K. Sezaki, UbiComp2023 Workshop (Sensing & Intervention)
+"[Smartwatch-Based Sensing Framework for Continuous Data Collection: Design and Implementation](https://dl.acm.org/doi/10.1145/3594739.3612874)," Y. Nishiyama and K. Sezaki, UbiComp2023 Workshop (Sensing & Intervention)
 
 ## Run an example application
 To run the example project, clone the repo and run `pod install` from the Example directory first.
