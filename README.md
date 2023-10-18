@@ -68,15 +68,35 @@ You can integrate this framework into your project via CocoaPods.
 ### CocoaPods with <u>GitHub</u>
 [CocoaPods](https://cocoapods.org) is a defact standard library manager for iOS application development. By using this library manager, you can download and install this library from GitHub. Before executing the following steps, please install and setup the CococaPod environment.
 
+1. Run `pod init` to set CocoaPod environment.
+```shell`
+pod init
+```
+
+2. Edit `Podfile` like following codes to install `com.awareframework.ios.sensor.applewatch` into your project.
 ```ruby
-pod 'com.awareframework.ios.sensor.applewatch', :git => 'git@github.com:tetujin/com.awareframework.ios.sensor.applewatch.git'
+target '[TARGET_NAME]' do
+  use_frameworks!
+  pod 'com.awareframework.ios.sensor.applewatch', :git => 'git@github.com:tetujin/com.awareframework.ios.sensor.applewatch.git'
+end
+
+target '[TARGET_NAME_FOR_WATCH_APP]' do
+  use_frameworks!
+  pod 'com.awareframework.ios.sensor.applewatch', :git => 'git@github.com:tetujin/com.awareframework.ios.sensor.applewatch.git'
+end
+
+```
+
+3. Execute `pod install` on your project
+```shell
+pod install
 ```
 
 ### CocoaPods with <u>a public repository</u>
 
 __NOTE: This installing method is not supported yet!!!__
 
-com.awareframework.ios.sensor.applewatch is available through [CocoaPods](https://cocoapods.org). To install
+`com.awareframework.ios.sensor.applewatch` is available through [CocoaPods](https://cocoapods.org). To install
 it, simply add the following line to your Podfile:
 
 ```ruby
