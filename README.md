@@ -92,6 +92,7 @@ end
 pod install
 ```
 
+<!--
 ### CocoaPods with <u>a public repository</u>
 
 __NOTE: This installing method is not supported yet!!!__
@@ -102,11 +103,27 @@ it, simply add the following line to your Podfile:
 ```ruby
 pod 'com.awareframework.ios.sensor.applewatch'
 ```
+-->
 
 <!-- 
 ### Swift Packages
 TBD 
 -->
+
+## Permissions
+To enable background sensing on Apple Watch, you need to change **Capability** and **background mode** settings on Xcode.
+
+### Capability
+Please add `Background Modes` and `HealthKit` on **Signing & Capabilities** tab using **+ Capability** button.  
+
+![background_mode](/images/background_modes.png)
+
+
+### Info.plist
+In addition, please add pairs of Key and Value into `WatchOS Target Properties` if you need. 
+The required pairs of Key and Value depend on what you are going to use in your application.
+
+![info.plist](/images/info_plist.png)
 
 
 ## Development
@@ -128,6 +145,9 @@ let appleWatch = AppleWatchSensor(AppleWatchSensor.Config().apply{config in
 SensorManager.shared.addSensors([appleWatch])
 SensorManager.shared.startAllSensors()
 ```
+
+More detailed sample codes can be found [below]().
+
 
 ### watchOS
 
