@@ -69,7 +69,7 @@ You can integrate this framework into your project via CocoaPods.
 [CocoaPods](https://cocoapods.org) is a defact standard library manager for iOS application development. By using this library manager, you can download and install this library from GitHub. Before executing the following steps, please install and setup the CococaPod environment.
 
 1. Run `pod init` to set CocoaPod environment.
-```shell`
+```shell
 pod init
 ```
 
