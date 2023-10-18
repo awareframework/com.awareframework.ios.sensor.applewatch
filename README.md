@@ -146,7 +146,7 @@ SensorManager.shared.addSensors([appleWatch])
 SensorManager.shared.startAllSensors()
 ```
 
-More detailed sample codes can be found [below]().
+More detailed sample codes can be found [here](https://github.com/tetujin/com.awareframework.ios.sensor.applewatch/blob/d16646411f5caf89d19797a187fe5c489d93f2eb/Example/com.awareframework.ios.sensor.applewatch/AppDelegate.swift#L30).
 
 
 ### watchOS
@@ -161,7 +161,7 @@ AWSensor.shared.start(AWSensorConfig().apply{config in
     config.activateMotionSensor = true
 })
 ```
-More detailed sample codes can be found [below](https://github.com/tetujin/com.awareframework.ios.sensor.applewatch/blob/909f71e0aadc2c05cfa0fb7f21e5584ebb095620/Example/AwareWatch%20Watch%20App/ContentView.swift#L31).
+More detailed sample codes can be found [here](https://github.com/tetujin/com.awareframework.ios.sensor.applewatch/blob/909f71e0aadc2c05cfa0fb7f21e5584ebb095620/Example/AwareWatch%20Watch%20App/ContentView.swift#L31).
 
 ## Author
 
