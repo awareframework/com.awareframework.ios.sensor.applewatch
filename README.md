@@ -141,6 +141,7 @@ AWSensor.shared.start(AWSensorConfig().apply{config in
     config.activateMotionSensor = true
 })
 ```
+More detailed sample codes can be found [below](https://github.com/tetujin/com.awareframework.ios.sensor.applewatch/blob/main/Example/AwareWatch%20Watch%20App/ContentView.swift).
 
 ## Author
 
