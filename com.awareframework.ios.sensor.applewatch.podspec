@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |s|
   s.name             = 'com.awareframework.ios.sensor.applewatch'
-  s.version          = '0.1.1'
+  s.version          = '0.7.0'
   s.summary          = 'A short description of com.awareframework.ios.sensor.applewatch.'
 
 # This description is used to generate tags and improve search results.
@@ -24,14 +24,14 @@ TODO: Add long description of the pod here.
   s.homepage         = 'https://github.com/1227623/com.awareframework.ios.sensor.applewatch'
   # s.screenshots     = 'www.example.com/screenshots_1', 'www.example.com/screenshots_2'
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
-  s.author           = { '1227623' => 'yuukin@iis.u-tokyo.ac.jp' }
+  s.author           = { '1227623' => 'nishiyama@csis.u-tokyo.ac.jp' }
   s.source           = { :git => 'https://github.com/1227623/com.awareframework.ios.sensor.applewatch.git', :tag => s.version.to_s }
   # s.social_media_url = 'https://twitter.com/<TWITTER_USERNAME>'
 
-  s.ios.deployment_target = '11.0'
+  s.ios.deployment_target = '12.0'
   s.watchos.deployment_target = '8.0'
 
-  s.swift_version = '4.2'
+  s.swift_version = '5'
   
   s.dependency 'DataCompression', '~> 3.8.0'
 
@@ -40,7 +40,7 @@ TODO: Add long description of the pod here.
   s.watchos.source_files = ['com.awareframework.ios.sensor.applewatch/Classes/watchos/**/*.swift']
   
   # ios
-  s.ios.dependency 'com.awareframework.ios.sensor.core', '~> 0.6.1'
+  s.ios.dependency 'com.awareframework.ios.sensor.core', '~> 0.7.0'
   s.ios.frameworks = 'WatchConnectivity'
   s.ios.source_files = ['com.awareframework.ios.sensor.applewatch/Classes/ios/**/*.swift']
  

@@ -5,7 +5,7 @@ target 'com.awareframework.ios.sensor.applewatch_Example' do
   pod 'com.awareframework.ios.sensor.applewatch', :path => '../'
   pod 'com.awareframework.ios.sensor.locations'
   
-  platform :ios, '11.0'
+  platform :ios, '12.0'
 #  use_frameworks!
   target 'com.awareframework.ios.sensor.applewatch_Tests' do
     inherit! :search_paths
