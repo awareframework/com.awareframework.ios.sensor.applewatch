@@ -34,6 +34,14 @@ public class AWLocationSensor: NSObject, ObservableObject {
             isRunning = true
             locationManager.delegate = self
             locationManager.allowsBackgroundLocationUpdates = true
+            locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+//            kCLLocationAccuracyBestForNavigation    デフォルト
+//            kCLLocationAccuracyBest    最高精度
+//            kCLLocationAccuracyNearestTenMeters    10m以内
+//            kCLLocationAccuracyHundredMeters    100m以内
+//            kCLLocationAccuracyKilometer    1km以内
+//            kCLLocationAccuracyThreeKilometers    3km以内
+
             sensorDataLocation = AWLocationSensorData()
             sensorDataHeading = AWHeadingSensorData()
             sensorDataLocation?.openFileHandler()
@@ -100,7 +108,7 @@ public class AWLocationSensor: NSObject, ObservableObject {
             
                     
                 // Add the timer to the current run loop.
-                RunLoop.current.add(self.timer!, forMode: .defaultRunLoopMode)
+                RunLoop.current.add(self.timer!, forMode: .default)
             }
             
             break

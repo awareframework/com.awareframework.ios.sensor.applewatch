@@ -154,3 +154,43 @@ public class AppleWatchLocationData: AwareObject {
         return dict
     }
 }
+
+
+public class AppleWatchAudioClassifierData: AwareObject {
+
+    public static let TABLE_NAME = "appleWatchAudioClassifierData"
+    
+    @objc dynamic public var identifier:String = ""
+    @objc dynamic public var confidence:Double = 0.0
+    
+    public override func toDictionary() -> Dictionary<String, Any> {
+        var dict = super.toDictionary()
+        dict["identifier"] = identifier
+        dict["confidence"] = confidence
+        return dict
+    }
+    
+}
+
+
+public class AppleWatchBluetoothData: AwareObject {
+
+    public static let TABLE_NAME = "appleWatchBluetoothData"
+    
+    @objc dynamic public var identifier:String = ""
+    @objc dynamic public var name:String = ""
+    @objc dynamic public var rssi:Double = 0
+    @objc dynamic public var state:Int = 0
+    @objc dynamic public var mtu:Int = 0
+    
+    public override func toDictionary() -> Dictionary<String, Any> {
+        var dict = super.toDictionary()
+        dict["identifier"] = identifier
+        dict["name"] = name
+        dict["rssi"] = rssi
+        dict["state"] = state
+        dict["mtu"] = mtu
+        return dict
+    }
+    
+}

@@ -69,7 +69,7 @@ public class AWBatterySensor: NSObject, ObservableObject {
                 self.sensorData?.update(batteryLevel: batteryLevel, batteryState: batteryState, label: self.config.label)
 
                 let gap = now.timeIntervalSince(self.lastBreakTime)
-                if (gap > Double(self.config.autoFileTransferInterval)){
+                if (gap > Double(self.config.autoFileTransferInterval) && self.config.autoFileTransfer){
                     if let data = self.sensorData {
                         data.closeFileHandler()
                         let originalFileURL = data.filePath
@@ -83,7 +83,7 @@ public class AWBatterySensor: NSObject, ObservableObject {
             })
                 
             // Add the timer to the current run loop.
-            RunLoop.current.add(self.timer!, forMode: .defaultRunLoopMode)
+            RunLoop.current.add(self.timer!, forMode: .default)
         }
     }
 

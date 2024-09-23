@@ -17,7 +17,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
 
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         
         let locationSensor = LocationsSensor(LocationsSensor.Config().apply{config in
@@ -31,9 +31,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             config.debug = true
             config.dbType = .REALM
             config.keepOriginalFileFromWatch = true
-//            config.sensorObserver = _AppleWatchObserver()
         })
         
+//        SensorManager.shared.addSensors([appleWatch])
+//        SensorManager.shared.startAllSensors()
         
         SensorManager.shared.addSensors([locationSensor, appleWatch])
         SensorManager.shared.startAllSensors()

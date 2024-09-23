@@ -14,7 +14,9 @@
 		4F005D52294CF8FE008DA96E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F005D51294CF8FE008DA96E /* ContentView.swift */; };
 		4F005D54294CF8FF008DA96E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4F005D53294CF8FF008DA96E /* Assets.xcassets */; };
 		4F005D57294CF8FF008DA96E /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4F005D56294CF8FF008DA96E /* Preview Assets.xcassets */; };
+		4F29345D2ACE345D00D9D56B /* SettingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F29345C2ACE345D00D9D56B /* SettingView.swift */; };
 		4F2B3F61295A458600123B53 /* SyncProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F2B3F60295A458600123B53 /* SyncProgressView.swift */; };
+		4F404E312A2E242C0045BADA /* VoiceNoiseClassifier.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 4F404E302A2E242C0045BADA /* VoiceNoiseClassifier.mlmodel */; };
 		4F7D0DA8295C3EC100A910E9 /* VisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F7D0DA7295C3EC100A910E9 /* VisualizerView.swift */; };
 		4FB4394F294F554100EA8B6F /* com.awareframework.ios.sensor.applewatch_Example Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 4F005D4D294CF8FE008DA96E /* com.awareframework.ios.sensor.applewatch_Example Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		607FACD61AFB9204008FA782 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 607FACD51AFB9204008FA782 /* AppDelegate.swift */; };
@@ -68,7 +70,9 @@
 		4F005D51294CF8FE008DA96E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		4F005D53294CF8FF008DA96E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4F005D56294CF8FF008DA96E /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		4F29345C2ACE345D00D9D56B /* SettingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingView.swift; sourceTree = "<group>"; };
 		4F2B3F60295A458600123B53 /* SyncProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncProgressView.swift; sourceTree = "<group>"; };
+		4F404E302A2E242C0045BADA /* VoiceNoiseClassifier.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = VoiceNoiseClassifier.mlmodel; sourceTree = "<group>"; };
 		4F65F106294D15B8009E6AF4 /* AwareWatch Watch App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "AwareWatch Watch App.entitlements"; sourceTree = "<group>"; };
 		4F7D0DA7295C3EC100A910E9 /* VisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualizerView.swift; sourceTree = "<group>"; };
 		4FB4394E294F546E00EA8B6F /* com-awareframework-ios-sensor-applewatch-Example-Watch-App-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "com-awareframework-ios-sensor-applewatch-Example-Watch-App-Info.plist"; sourceTree = "<group>"; };
@@ -123,9 +127,11 @@
 		4F005D4E294CF8FE008DA96E /* AwareWatch Watch App */ = {
 			isa = PBXGroup;
 			children = (
+				4F404E302A2E242C0045BADA /* VoiceNoiseClassifier.mlmodel */,
 				4F65F106294D15B8009E6AF4 /* AwareWatch Watch App.entitlements */,
 				4F005D4F294CF8FE008DA96E /* AwareWatchApp.swift */,
 				4F005D51294CF8FE008DA96E /* ContentView.swift */,
+				4F29345C2ACE345D00D9D56B /* SettingView.swift */,
 				4F7D0DA7295C3EC100A910E9 /* VisualizerView.swift */,
 				4F2B3F60295A458600123B53 /* SyncProgressView.swift */,
 				4F005D53294CF8FF008DA96E /* Assets.xcassets */,
@@ -535,7 +541,9 @@
 				4F7D0DA8295C3EC100A910E9 /* VisualizerView.swift in Sources */,
 				4F005D52294CF8FE008DA96E /* ContentView.swift in Sources */,
 				4F005D50294CF8FE008DA96E /* AwareWatchApp.swift in Sources */,
+				4F29345D2ACE345D00D9D56B /* SettingView.swift in Sources */,
 				4F2B3F61295A458600123B53 /* SyncProgressView.swift in Sources */,
+				4F404E312A2E242C0045BADA /* VoiceNoiseClassifier.mlmodel in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -617,6 +625,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "com-awareframework-ios-sensor-applewatch-Example-Watch-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = AwareWatch;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "For recording your heartrate, this application needs to access HealthKit recoreds.";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "";
@@ -635,9 +644,9 @@
 				SKIP_INSTALL = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 8.0;
+				WATCHOS_DEPLOYMENT_TARGET = 9.0;
 			};
 			name = Debug;
 		};
@@ -666,6 +675,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "com-awareframework-ios-sensor-applewatch-Example-Watch-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = AwareWatch;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "For recording your heartrate, this application needs to access HealthKit recoreds.";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "";
@@ -682,9 +692,9 @@
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 8.0;
+				WATCHOS_DEPLOYMENT_TARGET = 9.0;
 			};
 			name = Release;
 		};
@@ -800,7 +810,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.demo.com-awareframework-ios-sensor-applewatch-Example";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -817,7 +827,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.demo.com-awareframework-ios-sensor-applewatch-Example";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
@@ -835,12 +845,12 @@
 					"$(inherited)",
 				);
 				INFOPLIST_FILE = Tests/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/com.awareframework.ios.sensor.applewatch_Example.app/com.awareframework.ios.sensor.applewatch_Example";
 			};
 			name = Debug;
@@ -855,12 +865,12 @@
 					"$(inherited)",
 				);
 				INFOPLIST_FILE = Tests/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/com.awareframework.ios.sensor.applewatch_Example.app/com.awareframework.ios.sensor.applewatch_Example";
 			};
 			name = Release;

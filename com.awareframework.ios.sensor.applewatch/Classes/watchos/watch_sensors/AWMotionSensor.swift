@@ -68,17 +68,17 @@ public class AWMotionSensor: NSObject, ObservableObject {
             self.motion.startAccelerometerUpdates()
         }
         
-//        if self.motion.isGyroAvailable {
-//            print("Start Gyro sensors: interval = \(interval)")
-//            self.motion.gyroUpdateInterval = interval
-//            self.motion.startGyroUpdates()
-//        }
-//
-//        if self.motion.isMagnetometerAvailable {
-//            print("Start Magnetometer sensor: interval = \(interval)")
-//            self.motion.magnetometerUpdateInterval = interval
-//            self.motion.startMagnetometerUpdates()
-//        }
+        if self.motion.isGyroAvailable {
+            print("Start Gyro sensors: interval = \(interval)")
+            self.motion.gyroUpdateInterval = interval
+            self.motion.startGyroUpdates()
+        }
+
+        if self.motion.isMagnetometerAvailable {
+            print("Start Magnetometer sensor: interval = \(interval)")
+            self.motion.magnetometerUpdateInterval = interval
+            self.motion.startMagnetometerUpdates()
+        }
 
         if self.motion.isDeviceMotionAvailable{
             print("Start Device Motion sensors: interval = \(interval)")
@@ -90,10 +90,7 @@ public class AWMotionSensor: NSObject, ObservableObject {
         
         if CMAltimeter.isAbsoluteAltitudeAvailable() {
             self.altimeter.startAbsoluteAltitudeUpdates(to: .main) { altitudeData, error in
-//                altitudeData?.altitude
-//                altitudeData?.accuracy
-//                altitudeData?.precision
-                
+
             }
         }
         
@@ -128,7 +125,7 @@ public class AWMotionSensor: NSObject, ObservableObject {
                                        label: self.config.label)
                 
                 let gap = now.timeIntervalSince(self.lastBreakTime)
-                if (gap > Double(self.config.autoFileTransferInterval)){
+                if (gap > Double(self.config.autoFileTransferInterval) && self.config.autoFileTransfer){
                     if let data = self.sensorData {
                         data.closeFileHandler()
                         let originalFileURL = data.filePath
@@ -141,7 +138,7 @@ public class AWMotionSensor: NSObject, ObservableObject {
             });
 
             // Add the timer to the current run loop.
-            RunLoop.current.add(self.timer!, forMode: .defaultRunLoopMode)
+            RunLoop.current.add(self.timer!, forMode: .default)
         }
     }
 

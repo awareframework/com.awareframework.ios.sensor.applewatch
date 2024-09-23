@@ -12,7 +12,7 @@ import SwiftUI
 struct AwareWatch_Watch_AppApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView().environmentObject(LocalSensorConfig())
         }
     }
 }

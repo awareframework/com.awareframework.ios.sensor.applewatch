@@ -1,7 +1,9 @@
 import HealthKit
+import CoreML
 import UserNotifications
 import WatchConnectivity
 import DataCompression
+import AVFoundation
 
 public class AWSensorConfig {
     public var enabled:Bool    = false
@@ -15,13 +17,17 @@ public class AWSensorConfig {
     public var activateBatterySensor = false
     public var activateLocationSensor = false
     public var activateHeadingSensor = false
+    public var activateAudioClassificationSensor = false
+    public var activateBluetoothSensor = false
     
     public var useLocalConfig = true
     
-
     public var autoFileTransfer = true
     public var autoFileTransferInterval = 60 * 15 // 15 minutes
     public var autoRecoveryFileTransfer = true
+    
+    public var audioBufferHandler:AVAudioNodeTapBlock?
+    public var audioClassifierModel:MLModel?
     
     public init(){
         
@@ -51,6 +57,7 @@ public class AWSensor: NSObject {
     public let hrSensor = AWHealthKitSensor()
     public let batterySensor = AWBatterySensor()
     public let locationSensor = AWLocationSensor()
+    public let bluetoothSensor = AWBluetoothSensor()
 
     let healthStore = HKHealthStore()
     var session : HKWorkoutSession?
@@ -63,10 +70,11 @@ public class AWSensor: NSObject {
         
         if (self.config.useLocalConfig){
             DispatchQueue.main.async {
+                self.startWorkout()
                 if (config.activateMotionSensor) {
                     self.motionSensor.start(config)
                 }
-                if (config.activateAmbientNoiseSensor || config.activateRawAudioSensor) {
+                if (config.activateAmbientNoiseSensor || config.activateRawAudioSensor || config.activateAudioClassificationSensor) {
                     self.audioSensor.start(config)
                 }
                 if (config.activateHRSensor ) {
@@ -77,6 +85,9 @@ public class AWSensor: NSObject {
                 }
                 if (config.activateLocationSensor || config.activateHeadingSensor) {
                     self.locationSensor.start(config)
+                }
+                if (config.activateBluetoothSensor) {
+                    self.bluetoothSensor.start(config)
                 }
             }
         }else{
@@ -96,7 +107,7 @@ public class AWSensor: NSObject {
                     if (config.activateMotionSensor) {
                         self.motionSensor.start(config)
                     }
-                    if (config.activateAmbientNoiseSensor || config.activateRawAudioSensor) {
+                    if (config.activateAmbientNoiseSensor || config.activateRawAudioSensor || config.activateAudioClassificationSensor) {
                         self.audioSensor.start(config)
                     }
                     if (config.activateHRSensor ) {
@@ -108,7 +119,9 @@ public class AWSensor: NSObject {
                     if (config.activateLocationSensor || config.activateHeadingSensor) {
                         self.locationSensor.start(config)
                     }
-                    
+                    if (config.activateBluetoothSensor) {
+                        self.bluetoothSensor.start(config)
+                    }
                 }
             })
         }
@@ -132,6 +145,7 @@ public class AWSensor: NSObject {
         hrSensor.stop()
         batterySensor.stop()
         locationSensor.stop()
+        bluetoothSensor.stop()
         stopWorkout()
         if let timer = recoveryFileTransferTimer {
             timer.invalidate()

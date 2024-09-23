@@ -18,6 +18,7 @@ case accelerometer
     case battery
     case speed
     case heading
+    case conversation
 }
 
 struct VisualizerView: View {
@@ -29,10 +30,11 @@ struct VisualizerView: View {
             NavigationLink("Accelerometer", destination:  ChartView(.accelerometer))
             NavigationLink("Rotation", destination: ChartView(.rotation))
             NavigationLink("Ambient Noist", destination: ChartView(.ambientnoise))
+            NavigationLink("Conversation", destination: ChartView(.conversation))
             NavigationLink("Heart Rate", destination: ChartView(.heartrate))
             NavigationLink("Battery", destination: ChartView(.battery))
             NavigationLink("Speed", destination: ChartView(.speed))
-            NavigationLink("heading", destination: ChartView(.heading))
+            NavigationLink("Heading", destination: ChartView(.heading))
         }
     }
 }
@@ -186,6 +188,20 @@ struct ChartView: View {
                             ).foregroundStyle(.blue)
                         }
                     }.padding(3).chartYScale(domain: 0...360)//.frame(height: 50)
+                }
+            case .conversation:
+                VStack{
+                    Text("Conversation")
+                    Chart() {
+//                        self.audioClasses.sort(by: { $0.family > $1.family })
+                        
+                        ForEach(audioSensor.audioClasses.sorted(by: { $0.family > $1.family }), id: \.date) {
+                            PointMark(
+                                x: .value("Date and Time", $0.date),
+                                y: .value("Confidence", $0.confidence)
+                            ).foregroundStyle(by: .value("Family", $0.family))
+                        }
+                    }.padding(3).chartXAxisLabel("Date and Time").chartYAxisLabel("Confidence") // .chartYScale(domain: 0...360)//.frame(height: 50)
                 }
             }
         } else {

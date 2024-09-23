@@ -108,6 +108,7 @@ public class AWHealthKitSensor: NSObject, ObservableObject {
     
     func createHeartRateStreamingQuery(_ workoutStartDate: Date) -> HKQuery? {
         guard let quantityType = HKObjectType.quantityType(forIdentifier: HKQuantityTypeIdentifier.heartRate) else { return nil }
+        HKQuantityTypeIdentifier.bodyTemperature
         let datePredicate = HKQuery.predicateForSamples(withStart: workoutStartDate, end: nil, options: .strictEndDate )
         //let devicePredicate = HKQuery.predicateForObjects(from: [HKDevice.local()])
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates:[datePredicate])
