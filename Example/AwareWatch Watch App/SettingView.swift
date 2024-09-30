@@ -13,7 +13,7 @@ enum SensorType {
     case accelerometer
     case raw_audio
     case ambient_noise
-    case conversation
+    case audio_classification
     case heartrate
     case location
     case bluetooth
@@ -28,7 +28,7 @@ class LocalSensorConfig: ObservableObject {
     @Published var accState = false
     @Published var rawAudioState = false
     @Published var ambientNoiseState = false
-    @Published var conversationState = false
+    @Published var audioClassificationState = false
     @Published var heartrateState = false
     @Published var locationState = false
     @Published var bluetoothState = false
@@ -56,7 +56,7 @@ struct SensorSettingView: View {
          SensorName(name: "Accelerometer", type: .accelerometer),
          SensorName(name: "Raw Audio", type: .raw_audio),
          SensorName(name: "Ambient Noise", type: .ambient_noise),
-         SensorName(name: "Conversation", type: .conversation),
+         SensorName(name: "Audio Classification", type: .audio_classification),
          SensorName(name: "Heartrate", type: .heartrate),
          SensorName(name: "Location", type: .location),
          SensorName(name: "Bluetooth", type: .bluetooth),
@@ -82,8 +82,8 @@ struct SensorSettingView: View {
             return localConfig.rawAudioState
         }else if sensorType == .ambient_noise {
             return localConfig.ambientNoiseState
-        }else if sensorType == .conversation {
-            return localConfig.conversationState
+        }else if sensorType == .audio_classification {
+            return localConfig.audioClassificationState
         }else if sensorType == .heartrate {
             return localConfig.heartrateState
         }else if sensorType == .location {
@@ -183,10 +183,22 @@ struct DetailSettingView:View {
                         )
                     }
                 }
-            case .conversation:
-                Toggle(isOn: $localConfig.conversationState) {
-                    Text(self.sensorName)
-                }.padding(3)
+            case .audio_classification:
+                Group{
+                    VStack {
+                        Toggle(isOn: $localConfig.audioClassificationState) {
+                            Text(self.sensorName)
+                        }.padding(3)
+//                        Text("5: \(Int( loalConfig.audioSensorConfig.store))")
+//                        Slider(value: $localConfig.accHz,
+//                               in: 0...100,
+//                               step: 1,
+//                               minimumValueLabel: Text("0"),
+//                               maximumValueLabel: Text("100"),
+//                               label: { EmptyView()}
+//                        )
+                    }
+                }
             case .heartrate:
                 Toggle(isOn: $localConfig.heartrateState) {
                     Text(self.sensorName)

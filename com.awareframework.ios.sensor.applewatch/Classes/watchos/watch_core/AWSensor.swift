@@ -29,6 +29,9 @@ public class AWSensorConfig {
     public var audioBufferHandler:AVAudioNodeTapBlock?
     public var audioClassifierModel:MLModel?
     
+    public var audioSensorConfig = AWAudioClassificationSensorConfig()
+    
+    
     public init(){
         
     }
@@ -52,17 +55,17 @@ public class AWSensor: NSObject {
     
     public var config = AWSensorConfig()
 
-    public let motionSensor = AWMotionSensor()
-    public let audioSensor = AWAudioSensor()
-    public let hrSensor = AWHealthKitSensor()
-    public let batterySensor = AWBatterySensor()
-    public let locationSensor = AWLocationSensor()
-    public let bluetoothSensor = AWBluetoothSensor()
+    public let motionSensor:AWMotionSensor = AWMotionSensor()
+    public let audioSensor:AWAudioSensor = AWAudioSensor()
+    public let hrSensor:AWHealthKitSensor = AWHealthKitSensor()
+    public let batterySensor:AWBatterySensor = AWBatterySensor()
+    public let locationSensor:AWLocationSensor = AWLocationSensor()
+    public let bluetoothSensor:AWBluetoothSensor = AWBluetoothSensor()
 
-    let healthStore = HKHealthStore()
+    let healthStore:HKHealthStore = HKHealthStore()
     var session : HKWorkoutSession?
     
-    let transferManager = FileTransferManager()
+    let transferManager:FileTransferManager = FileTransferManager()
     private var recoveryFileTransferTimer:Timer? = nil
     
     public func start(_ config:AWSensorConfig){
@@ -329,6 +332,8 @@ extension AWSensor: WCSessionDelegate{
             print("inactive")
         case .activated:
             print("activated")
+        @unknown default:
+            print("unkwnon")
         }
     }
     

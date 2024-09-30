@@ -15,23 +15,6 @@ import UserNotifications
 import SoundAnalysis
 
 extension AWAudioSensor:AVAudioRecorderDelegate{
-    public func audioRecorderBeginInterruption(_ recorder: AVAudioRecorder) {
-        if let handler = beginInterruptionHandler {
-            handler()
-        }
-        self.stop()
-    }
-
-    public func audioRecorderEndInterruption(_ recorder: AVAudioRecorder, withOptions flags: Int) {
-        // recorder.
-        if let handler = endInterruptionHandler {
-            handler()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            self.start(self.config)
-        }
-    }
-    
     public func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
         if (self.config.debug) {
             print("\(#function): \(recorder.url.lastPathComponent) \(flag) ")
@@ -41,7 +24,6 @@ extension AWAudioSensor:AVAudioRecorderDelegate{
         }
     }
 }
-
 
 public struct AWDecibelLinePoint {
     public var date: Date
@@ -54,37 +36,67 @@ public struct AWAudioClassPoint{
     public var confidence:Double
 }
 
+public class AWAudioClassificationSensorConfig {
+    public var storeOnlyFilterData = false
+//    public var storeOnlyTargetAudioClass:[String]?
+    public var storeOnlyTopK:Int?
+//    public var storeOnlyAboveCertenConfidenceLevel:Double?
+}
+
 extension AWAudioSensor: SNResultsObserving {
     public func request(_ request: SNRequest, didProduce result: SNResult) {
-        
         
         guard let result = result as? SNClassificationResult else { return }
        
         DispatchQueue.main.async {
             let now = Date()
             
+            self.audioClasses.removeAll()
             for c in result.classifications {
-                self.audioClassifierData?.update(identifier: c.identifier, confidence: c.confidence)
-                
-                self.audioClasses.append(AWAudioClassPoint(family: c.identifier, date:now , confidence: c.confidence))
-                if (self.audioClasses.count > 100) {
-                    self.audioClasses.removeFirst()
+                self.audioClasses.append(AWAudioClassPoint(family: c.identifier, date: now, confidence: c.confidence))
+            }
+            if self.config.audioSensorConfig.storeOnlyFilterData {
+                let maxKnownClassies = self.knownClassifications?.count ?? 0
+                let topK = self.config.audioSensorConfig.storeOnlyTopK ?? maxKnownClassies
+                for audioClass in result.classifications.sorted(by: { a, b in
+                    return (a.confidence > b.confidence);
+                })[..<topK] {
+                    print(audioClass.identifier, audioClass.confidence)
+                    self.audioClassifierSimpleData?.update(identifier: audioClass.identifier, confidence: audioClass.confidence )
                 }
+                print("--------")
+            } else {
+                self.audioClassifierData?.update(result.classifications)
             }
             
             let gap = now.timeIntervalSince(self.lastBreakTimeAudioClassifier)
             if (gap > Double(self.config.autoFileTransferInterval)){
-                if let audioClassifierData = self.audioClassifierData {
-                    audioClassifierData.closeFileHandler()
-                    self.fileTransferManager.transferFile(fileURL: audioClassifierData.filePath, debug: self.config.debug)
+                
+                if self.config.audioSensorConfig.storeOnlyFilterData {
+                    // transfer data and create new data object
+                    if let audioClassifierSimpleData = self.audioClassifierSimpleData {
+                        audioClassifierSimpleData.closeFileHandler()
+                        self.fileTransferManager.transferFile(fileURL: audioClassifierSimpleData.filePath, debug: self.config.debug)
+                    }
+                    self.audioClassifierSimpleData?.openFileHandler()
+                }else{
+                    // transfer data and create new data object
+                    if let audioClassifierData = self.audioClassifierData {
+                        audioClassifierData.closeFileHandler()
+                        self.fileTransferManager.transferFile(fileURL: audioClassifierData.filePath, debug: self.config.debug)
+                    }
+                    if let uwKnownClassifications = self.knownClassifications {
+                        self.audioClassifierData = AWAudioClassifierSensorData(knownClassifications: uwKnownClassifications)
+                    }
+                    self.audioClassifierData?.openFileHandler()
                 }
-                self.audioClassifierData = AWAudioClassifierSensorData()
-                self.audioClassifierData?.openFileHandler()
+                
+                
+                
                 self.lastBreakTimeAudioClassifier = now
+                
             }
-            
         }
-
     }
 }
 
@@ -105,7 +117,9 @@ final public class AWAudioSensor:NSObject, ObservableObject{
     var lastBreakTimeAudioClassifier = Date()
     var sensorData:AWAudioSensorData?
     var audioClassifierData:AWAudioClassifierSensorData?
-    
+    var audioClassifierSimpleData:AWAudioClassifierSimpleSensorData?
+    var knownClassifications:[String]?
+
     @Published public var decibels = [AWDecibelLinePoint]()
     @Published public var audioClasses = [AWAudioClassPoint]()
     
@@ -115,15 +129,21 @@ final public class AWAudioSensor:NSObject, ObservableObject{
     var analysisQueue : DispatchQueue!
     
     public var config = AWSensorConfig()
+    
+    private var isSuspended = false
 
     public override init() {
         super.init()
         analysisQueue = DispatchQueue(label: "com.awareframework.watch.audio.AnalysisQueue")
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(handleInterruption), name: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance())
     }
     
     deinit {
         audioEngine.inputNode.removeTap(onBus: 0)
         self.audioEngine.reset()
+        
+        NotificationCenter.default.removeObserver(self, name: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance())
     }
     
     private func createFileUrl(fileName:String) -> URL {
@@ -153,6 +173,7 @@ final public class AWAudioSensor:NSObject, ObservableObject{
     }
     
     public func start(_ config:AWSensorConfig){
+        
         self.config = config
         
         if(audioEngine.inputNode.inputFormat(forBus: 0).channelCount == 0){
@@ -163,6 +184,7 @@ final public class AWAudioSensor:NSObject, ObservableObject{
         
         // Configure the audio session for the app.
         let audioSession = AVAudioSession.sharedInstance()
+        
         
         audioSession.requestRecordPermission { granted in
             if granted {
@@ -192,21 +214,28 @@ final public class AWAudioSensor:NSObject, ObservableObject{
     }
     
     private func startAudioProcessing(inputNode:AVAudioInputNode){
-        sensorData = AWAudioSensorData()
-        sensorData?.openFileHandler()
         
-        audioClassifierData =  AWAudioClassifierSensorData()
-        audioClassifierData?.openFileHandler()
-        
-        // showAudioRoute()
         let inputFormat = inputNode.inputFormat(forBus: 0)
-//        print(inputFormat)
-        
+
         do {
             streamAnalyzer = SNAudioStreamAnalyzer(format: inputFormat)
             if let model = self.config.audioClassifierModel {
                 let request = try SNClassifySoundRequest(mlModel: model)
+                self.knownClassifications = request.knownClassifications
                 try streamAnalyzer.add(request, withObserver: self)
+            }else{
+                let request = try SNClassifySoundRequest(classifierIdentifier: .version1)
+                try streamAnalyzer.add(request, withObserver: self)
+                self.knownClassifications = request.knownClassifications
+            }
+        
+            if config.audioSensorConfig.storeOnlyFilterData {
+                // filter が入る場合の処理
+                audioClassifierSimpleData = AWAudioClassifierSimpleSensorData()
+                audioClassifierSimpleData?.openFileHandler()
+            }else{
+                audioClassifierData =  AWAudioClassifierSensorData(knownClassifications: self.knownClassifications!)
+                audioClassifierData?.openFileHandler()
             }
         } catch {
             print("Unable to prepare request: \(error.localizedDescription)")
@@ -222,7 +251,7 @@ final public class AWAudioSensor:NSObject, ObservableObject{
                 tapBlock(buffer, when)
             }
             
-            if self.config.activateAudioClassificationSensor && self.config.audioClassifierModel != nil {
+            if self.config.activateAudioClassificationSensor {
                 self.analysisQueue.async {
                     self.streamAnalyzer.analyze(buffer, atAudioFramePosition: when.sampleTime)
                 }
@@ -340,10 +369,21 @@ final public class AWAudioSensor:NSObject, ObservableObject{
         }
         
         self.audioClassifierData?.closeFileHandler()
+        self.audioClassifierSimpleData?.closeFileHandler()
+        
         if self.config.activateAudioClassificationSensor {
-            if let audioClassifierData = self.audioClassifierData {
-                fileTransferManager.transferFile(fileURL: audioClassifierData.filePath, debug: self.config.debug)
+            if config.audioSensorConfig.storeOnlyFilterData {
+                // simaple data
+                if let audioClassifierSimpleData = self.audioClassifierSimpleData {
+                    fileTransferManager.transferFile(fileURL: audioClassifierSimpleData.filePath, debug: self.config.debug)
+                }
+            }else{
+                // all data
+                if let audioClassifierData = self.audioClassifierData {
+                    fileTransferManager.transferFile(fileURL: audioClassifierData.filePath, debug: self.config.debug)
+                }
             }
+
         }
     }
     
@@ -375,6 +415,52 @@ final public class AWAudioSensor:NSObject, ObservableObject{
             }
         }
     }
+    
+    @objc func handleInterruption(notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
+            return
+        }
+
+        switch type {
+        case .began:
+            if let handler = beginInterruptionHandler {
+                handler()
+            }
+            // 割り込みが開始された
+            print("Interruption began")
+            if !isSuspended {
+                isSuspended = true
+                self.stop()
+            }
+            // 必要に応じてここで録音を一時停止など
+        case .ended:
+            if let handler = endInterruptionHandler {
+                handler()
+            }
+            // 割り込みが終了した
+            if let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt {
+                let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
+                if options.contains(.shouldResume) {
+                    // 割り込み後に再開可能
+                    print("Interruption ended - should resume")
+                    // 録音を再開するなど
+                    if isSuspended {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            self.start(self.config)
+                        }
+                        isSuspended = false
+                    }
+
+                } else {
+                    print("Interruption ended - should not resume")
+                }
+            }
+        @unknown default:
+            break
+        }
+    }
 }
 
 
@@ -404,11 +490,38 @@ final public class AWAudioSensorData:AWSensorData {
 
 final public class AWAudioClassifierSensorData:AWSensorData {
     
+    var knownClassifications:[String]
+    var confidences:[SNClassification]?
+    
+    init(knownClassifications:[String]) {
+        self.knownClassifications = knownClassifications
+        self.knownClassifications.sort{ $0 < $1 }
+        self.knownClassifications.insert("timestamp", at: 0)
+        print(self.knownClassifications)
+        super.init("audio-classifier", header: self.knownClassifications)
+    }
+    
+    func update(_ confidences:[SNClassification]){
+        // 文字列でソートしてデータを追加
+        self.confidences = confidences.sorted{$0.identifier < $1.identifier}
+        
+        var values:[String] = []
+        let now = Int64(Date().timeIntervalSince1970 * 1000)
+        values.append("\(now)")
+        for snc in self.confidences! {
+            values.append("\(snc.confidence)")
+        }
+        self.save(values)
+    }
+}
+
+final public class AWAudioClassifierSimpleSensorData:AWSensorData {
+    
     var identifier:String = ""
     var confidence:Double = 0.0
     
     init() {
-        super.init("audio-classifier", header: ["timestamp", "identifier", "confidence"])
+        super.init("audio-classifier-simple", header: ["timestamp", "identifier", "confidence"])
     }
     
     func update(identifier:String = "", confidence:Double=0.0){

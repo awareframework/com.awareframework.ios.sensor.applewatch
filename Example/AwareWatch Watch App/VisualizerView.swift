@@ -13,12 +13,12 @@ import Charts
 enum ChartType {
 case accelerometer
     case rotation
-    case ambientnoise
+    case ambientNoise
     case heartrate
     case battery
     case speed
     case heading
-    case conversation
+    case audioClassification
 }
 
 struct VisualizerView: View {
@@ -29,8 +29,8 @@ struct VisualizerView: View {
         List{
             NavigationLink("Accelerometer", destination:  ChartView(.accelerometer))
             NavigationLink("Rotation", destination: ChartView(.rotation))
-            NavigationLink("Ambient Noist", destination: ChartView(.ambientnoise))
-            NavigationLink("Conversation", destination: ChartView(.conversation))
+            NavigationLink("Ambient Noist", destination: ChartView(.ambientNoise))
+            NavigationLink("Audio Classification", destination: ChartView(.audioClassification))
             NavigationLink("Heart Rate", destination: ChartView(.heartrate))
             NavigationLink("Battery", destination: ChartView(.battery))
             NavigationLink("Speed", destination: ChartView(.speed))
@@ -66,65 +66,14 @@ struct ChartView: View {
             switch type {
             case .accelerometer:
                 VStack {
-                    Text("Accelerometer")
-                    Chart {
-                        ForEach(motionSensor.accelerations, id: \.date) { item in
-                            LineMark(
-                                x: .value("Date", item.date),
-                                y: .value("G", item.x),
-                                series: .value("Company", "X")
-                            ).foregroundStyle(.green)
-                        }
-                        ForEach(motionSensor.accelerations, id: \.date) { item in
-                            LineMark(
-                                x: .value("Date", item.date),
-                                y: .value("G", item.y),
-                                series: .value("Company", "Y")
-                            ).foregroundStyle(.blue)
-                        }
-                        ForEach(motionSensor.accelerations, id: \.date) { item in
-                            LineMark(
-                                x: .value("Date", item.date),
-                                y: .value("G", item.z),
-                                series: .value("Company", "Z")
-                            ).foregroundStyle(.red)
-                        }
-                    }.padding(3)//.frame(height: 50)
-                }
+                    AccelerometerChart(accelerations: motionSensor.accelerations)
+                }.navigationTitle("Accelerometer")
             case .rotation:
                 VStack {
-                    Text("Rotation")
-                    Chart {
-                        ForEach(motionSensor.motions, id: \.date) { item in
-                            LineMark(
-                                x: .value("Date", item.date),
-                                y: .value("", item.x),
-                                series: .value("Company", "X")
-                            )
-                            .foregroundStyle(.green)
-                        }
-                        ForEach(motionSensor.motions, id: \.date) { item in
-                            LineMark(
-                                x: .value("Date", item.date),
-                                y: .value("", item.y),
-                                series: .value("Company", "Y")
-                            )
-                            .foregroundStyle(.blue)
-                        }
-                        ForEach(motionSensor.motions, id: \.date) { item in
-                            LineMark(
-                                x: .value("Date", item.date),
-                                y: .value("", item.z),
-                                series: .value("Company", "Z")
-                            )
-                            .foregroundStyle(.red)
-                        }
-                    }.padding(3)//.frame(height: 50)
-                }
-                
-            case .ambientnoise:
+                    RotationChart(motions: motionSensor.motions)
+                }.navigationTitle("Rotation")
+            case .ambientNoise:
                 VStack {
-                    Text("Ambient Noise")
                     Chart {
                         ForEach(audioSensor.decibels, id: \.date) { item in
                             LineMark(
@@ -134,10 +83,9 @@ struct ChartView: View {
                             .foregroundStyle(.brown)
                         }
                     }.padding(3)//.frame(height: 50)
-                }
+                }.navigationTitle("Ambient Noise")
             case .heartrate:
                 VStack {
-                    Text("Heat Rate")
                     Chart {
                         ForEach(hrSensor.heartrates, id: \.date) { item in
                             LineMark(
@@ -147,10 +95,9 @@ struct ChartView: View {
                             .foregroundStyle(.pink)
                         }
                     }.padding(3)//.frame(height: 50)
-                }
+                }.navigationTitle("Heatrate")
             case .battery:
                 VStack {
-                    Text("Battery")
                     Chart {
                         ForEach(batterySensor.batteryLevels, id: \.date) { item in
                             LineMark(
@@ -158,13 +105,13 @@ struct ChartView: View {
                                 y: .value("Batter Level", item.value == -1 ? 0 : item.value * 100)
                             )
                             .foregroundStyle(.blue)
-
+                            
                         }
                     }.padding(3).chartYScale(domain: 0...100) // frame(height: 50).
-                }
+                }.navigationTitle("Battery")
             case .speed:
                 VStack {
-                    Text("Speed")
+                    
                     Chart {
                         ForEach(locationSensor.locations, id: \.date) { item in
                             LineMark(x: .value("Date", item.date),
@@ -172,10 +119,10 @@ struct ChartView: View {
                             ).foregroundStyle(.purple)
                         }
                     }.padding(3)//.frame(height: 50)
-                }
+                }.navigationTitle("Speed")
             case .heading:
                 VStack {
-                    Text("Heading")
+                    
                     Chart {
                         ForEach(locationSensor.geomagnetisms, id: \.date) { item in
                             LineMark(x: .value("Date", item.date),
@@ -188,28 +135,95 @@ struct ChartView: View {
                             ).foregroundStyle(.blue)
                         }
                     }.padding(3).chartYScale(domain: 0...360)//.frame(height: 50)
-                }
-            case .conversation:
+                }.navigationTitle("Heading")
+            case .audioClassification:
                 VStack{
-                    Text("Conversation")
-                    Chart() {
-//                        self.audioClasses.sort(by: { $0.family > $1.family })
-                        
-                        ForEach(audioSensor.audioClasses.sorted(by: { $0.family > $1.family }), id: \.date) {
-                            PointMark(
-                                x: .value("Date and Time", $0.date),
-                                y: .value("Confidence", $0.confidence)
-                            ).foregroundStyle(by: .value("Family", $0.family))
-                        }
-                    }.padding(3).chartXAxisLabel("Date and Time").chartYAxisLabel("Confidence") // .chartYScale(domain: 0...360)//.frame(height: 50)
-                }
+                    AudioClassificationChart(audioClasses: audioSensor.audioClasses)
+                }.navigationTitle("Audio Classification")
             }
         } else {
-            Text("The application is inactive...")
+            Text("Inactive: Tap to open activate the app")
+        }
+    }
+}
+
+struct AudioClassificationChart: View {
+    let audioClasses: [AWAudioClassPoint]
+    
+    var body: some View {
+        if (audioClasses.count != 0) {
+            Chart(audioClasses[...5], id: \.family) {
+                    BarMark(
+                        x: .value("Confidence", $0.confidence),
+                        y: .value("Family", $0.family)
+                    )
+            }.chartXScale(domain: 0...1.0)
+                .chartXAxisLabel("Confidence")
+//                .chartYAxisLabel("Audio Class")
         }
     }
 }
 
 
+struct AccelerometerChart: View {
+    let accelerations: [AWAccelerationLinePoint]
 
+    var body: some View {
+        Chart {
+            ForEach(accelerations, id: \.date) { item in
+                LineMark(
+                    x: .value("Date", item.date),
+                    y: .value("G", item.x),
+                    series: .value("Company", "X")
+                ).foregroundStyle(.green)
+            }
+            ForEach(accelerations, id: \.date) { item in
+                LineMark(
+                    x: .value("Date", item.date),
+                    y: .value("G", item.y),
+                    series: .value("Company", "Y")
+                ).foregroundStyle(.blue)
+            }
+            ForEach(accelerations, id: \.date) { item in
+                LineMark(
+                    x: .value("Date", item.date),
+                    y: .value("G", item.z),
+                    series: .value("Company", "Z")
+                ).foregroundStyle(.red)
+            }
+        }.padding(3).chartXAxisLabel("Timestamp").chartYAxisLabel("G")
+    }
+}
 
+struct RotationChart: View {
+    let motions: [AWRotationLinePoint]
+    
+    var body: some View {
+        Chart {
+            ForEach(motions, id: \.date) { item in
+                LineMark(
+                    x: .value("Date", item.date),
+                    y: .value("", item.x),
+                    series: .value("Company", "X")
+                )
+                .foregroundStyle(.green)
+            }
+            ForEach(motions, id: \.date) { item in
+                LineMark(
+                    x: .value("Date", item.date),
+                    y: .value("", item.y),
+                    series: .value("Company", "Y")
+                )
+                .foregroundStyle(.blue)
+            }
+            ForEach(motions, id: \.date) { item in
+                LineMark(
+                    x: .value("Date", item.date),
+                    y: .value("", item.z),
+                    series: .value("Company", "Z")
+                )
+                .foregroundStyle(.red)
+            }
+        }.padding(3)//.frame(height: 50)
+    }
+}

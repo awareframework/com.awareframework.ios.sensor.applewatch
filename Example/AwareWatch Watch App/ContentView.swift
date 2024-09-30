@@ -45,18 +45,19 @@ struct ContentView: View {
                                     config.activateLocationSensor = localConfig.locationState
                                     config.activateRawAudioSensor = localConfig.rawAudioState
                                     config.activateAmbientNoiseSensor = localConfig.ambientNoiseState
-                                    config.activateAudioClassificationSensor = localConfig.conversationState
+                                    config.activateAudioClassificationSensor = localConfig.audioClassificationState
                                     config.activateHeadingSensor = localConfig.locationState
                                     config.activateHRSensor = localConfig.heartrateState
                                     config.activateBluetoothSensor = localConfig.bluetoothState
                                     
-                                    do {
-                                        let classifier = try  VoiceNoiseClassifier()
-                                        config.audioClassifierModel = classifier.model
-                                    } catch  {
-                                        print(error)
-                                    }
-                                    
+//                                    do {
+//                                        let classifier = try  VoiceNoiseClassifier()
+//                                        config.audioClassifierModel = classifier.model
+//                                    } catch  {
+//                                        print(error)
+//                                    }
+//                                    config.audioSensorConfig.storeOnlyFilterData = true
+//                                    config.audioSensorConfig.storeOnlyTopK = 10
                                     
                                     config.autoFileTransferInterval = Int(localConfig.fileSyncIntervalMin * 60) // 5 minutes in this case
                                     config.autoFileTransfer = localConfig.fileTransfer  // transfer sensor data during sensing
