@@ -36,7 +36,17 @@ public struct AWAudioClassPoint{
     public var confidence:Double
 }
 
-public class AWAudioClassificationSensorConfig {
+
+public class AWAudioSensorConfig {
+    public var onBus = 0;
+    public var bufferSize:UInt32 = 8192;
+    public var interval:Double?; // seconds
+    
+    public var audioRecordFormat = kAudioFormatMPEG4AAC; // kAudioFormatLinearPCM (非圧縮フォーマット)
+    public var audioRecordSampleRate = 22050; // 44100,
+    public var audioRecordQuality:AVAudioQuality = .medium;
+    public var audioRecordNumberOfChannels = 1;
+    
     public var storeOnlyFilterData = false
 //    public var storeOnlyTargetAudioClass:[String]?
     public var storeOnlyTopK:Int?
@@ -76,14 +86,16 @@ extension AWAudioSensor: SNResultsObserving {
                     // transfer data and create new data object
                     if let audioClassifierSimpleData = self.audioClassifierSimpleData {
                         audioClassifierSimpleData.closeFileHandler()
-                        self.fileTransferManager.transferFile(fileURL: audioClassifierSimpleData.filePath, debug: self.config.debug)
+                        self.fileTransferManager.transferFile(fileURL: audioClassifierSimpleData.filePath,
+                                                              debug: self.config.debug)
                     }
                     self.audioClassifierSimpleData?.openFileHandler()
                 }else{
                     // transfer data and create new data object
                     if let audioClassifierData = self.audioClassifierData {
                         audioClassifierData.closeFileHandler()
-                        self.fileTransferManager.transferFile(fileURL: audioClassifierData.filePath, debug: self.config.debug)
+                        self.fileTransferManager.transferFile(fileURL: audioClassifierData.filePath,
+                                                              debug: self.config.debug)
                     }
                     if let uwKnownClassifications = self.knownClassifications {
                         self.audioClassifierData = AWAudioClassifierSensorData(knownClassifications: uwKnownClassifications)
@@ -140,10 +152,11 @@ final public class AWAudioSensor:NSObject, ObservableObject{
     }
     
     deinit {
-        audioEngine.inputNode.removeTap(onBus: 0)
+        audioEngine.inputNode.removeTap(onBus: self.config.audioSensorConfig.onBus)
         self.audioEngine.reset()
         
-        NotificationCenter.default.removeObserver(self, name: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance())
+        NotificationCenter.default.removeObserver(self, name: AVAudioSession.interruptionNotification,
+                                                  object: AVAudioSession.sharedInstance())
     }
     
     private func createFileUrl(fileName:String) -> URL {
@@ -176,7 +189,7 @@ final public class AWAudioSensor:NSObject, ObservableObject{
         
         self.config = config
         
-        if(audioEngine.inputNode.inputFormat(forBus: 0).channelCount == 0){
+        if(audioEngine.inputNode.inputFormat(forBus: self.config.audioSensorConfig.onBus).channelCount == 0){
             setNotificationForSensorReboot()
             return
         }
@@ -215,7 +228,7 @@ final public class AWAudioSensor:NSObject, ObservableObject{
     
     private func startAudioProcessing(inputNode:AVAudioInputNode){
         
-        let inputFormat = inputNode.inputFormat(forBus: 0)
+        let inputFormat = inputNode.inputFormat(forBus: self.config.audioSensorConfig.onBus)
 
         do {
             streamAnalyzer = SNAudioStreamAnalyzer(format: inputFormat)
@@ -243,8 +256,8 @@ final public class AWAudioSensor:NSObject, ObservableObject{
         }
         
         // <AVAudioFormat 0x15dc08c0:  1 ch,  48000 Hz, Float32>
-        inputNode.installTap(onBus: 0,
-                             bufferSize: 8192, //4096, // //32768, //1024, 8192, //16384, // 8192, //
+        inputNode.installTap(onBus: self.config.audioSensorConfig.onBus,
+                             bufferSize: self.config.audioSensorConfig.bufferSize,
                              format: inputFormat) { (buffer: AVAudioPCMBuffer, when: AVAudioTime) in
             
             if let tapBlock = self.config.audioBufferHandler {
@@ -307,20 +320,11 @@ final public class AWAudioSensor:NSObject, ObservableObject{
     var timer:Timer?
     
     private func startAudioRecord(audioFile:URL, inputNode:AVAudioInputNode){
-//        let outputFormat = inputNode.outputFormat(forBus: 0)
-//        print(outputFormat.settings)
-        
-//            let recordSetting: [String: Any] = [
-//                AVSampleRateKey: NSNumber(value: 16000), //44100.0), // , 8000
-//                AVFormatIDKey: NSNumber(value: kAudioFormatLinearPCM), // 非圧縮フォーマット
-//                AVNumberOfChannelsKey: NSNumber(value: 1),
-//                AVEncoderAudioQualityKey: NSNumber(value: AVAudioQuality.low.rawValue)
-//            ]
         let recordSetting: [String: Any] = [
-            AVSampleRateKey: NSNumber(value: 22050),
-            AVFormatIDKey: NSNumber(value: kAudioFormatMPEG4AAC), // 圧縮フォーマット
-            AVNumberOfChannelsKey: NSNumber(value: 1),
-            AVEncoderAudioQualityKey: NSNumber(value: AVAudioQuality.medium.rawValue)
+            AVSampleRateKey: NSNumber(value: self.config.audioSensorConfig.audioRecordSampleRate),
+            AVFormatIDKey: NSNumber(value: self.config.audioSensorConfig.audioRecordFormat),
+            AVNumberOfChannelsKey: NSNumber(value: self.config.audioSensorConfig.audioRecordNumberOfChannels),
+            AVEncoderAudioQualityKey: NSNumber(value: self.config.audioSensorConfig.audioRecordQuality.rawValue)
         ]
 
         do {
@@ -358,7 +362,7 @@ final public class AWAudioSensor:NSObject, ObservableObject{
         //        self.removeRemoteCommandEvents()
         self.audioEngine.stop()
         self.audioEngine.disconnectNodeOutput(self.audioEngine.inputNode)
-        self.audioEngine.inputNode.removeTap(onBus: 0)
+        self.audioEngine.inputNode.removeTap(onBus: self.config.audioSensorConfig.onBus)
         self.audioEngine.reset()
             // self.audioEngine = nil
         self.sensorData?.closeFileHandler()
