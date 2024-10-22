@@ -19,7 +19,7 @@ The latest version of the framework supports the following sensors:
 * Microphone
     * Raw audio
     * Ambient noise level
-    * [Sound classification](https://developer.apple.com/documentation/soundanalysis/classifying_sounds_in_an_audio_stream) with a sound classification provided by Apple (which can classify 303 sound types on a device)
+    * [Sound classification](https://developer.apple.com/documentation/soundanalysis/classifying_sounds_in_an_audio_stream) with a sound classification model provided by Apple (which can classify 303 sound types on a device)
     * Sound classification with own CoreML model
 * Heatrate
 
