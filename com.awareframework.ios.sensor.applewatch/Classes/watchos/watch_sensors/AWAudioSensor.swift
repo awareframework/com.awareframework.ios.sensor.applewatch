@@ -189,6 +189,10 @@ final public class AWAudioSensor:NSObject, ObservableObject{
         
         self.config = config
         
+        if (config.debug){
+            showAvailableInputs()
+        }
+        
         if(audioEngine.inputNode.inputFormat(forBus: self.config.audioSensorConfig.onBus).channelCount == 0){
             setNotificationForSensorReboot()
             return
@@ -276,6 +280,11 @@ final public class AWAudioSensor:NSObject, ObservableObject{
                     let db = SignalProcessing.db(from: rms)
                     
                     DispatchQueue.main.async {
+                        if (db.isInfinite) {
+                            if (self.config.debug == true) { print("AWARE::AppleWatch [AWAudioSensor] dB is infinite") }
+                            return
+                        }
+                        
                         self.sensorData?.update(db: Double(db))
                         
                         let now = Date()
@@ -501,7 +510,7 @@ final public class AWAudioClassifierSensorData:AWSensorData {
         self.knownClassifications = knownClassifications
         self.knownClassifications.sort{ $0 < $1 }
         self.knownClassifications.insert("timestamp", at: 0)
-        print(self.knownClassifications)
+//        print(self.knownClassifications)
         super.init("audio-classifier", header: self.knownClassifications)
     }
     

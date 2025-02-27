@@ -31,6 +31,8 @@ public class AWSensorConfig {
     
     public var audioSensorConfig = AWAudioSensorConfig()
     
+    public var useWorkoutSession = false
+    
     public init(){
         
     }
@@ -72,7 +74,9 @@ public class AWSensor: NSObject {
         
         if (self.config.useLocalConfig){
             DispatchQueue.main.async {
-                self.startWorkout()
+                if (config.useWorkoutSession) {
+                    self.startWorkout()
+                }
                 if (config.activateMotionSensor) {
                     self.motionSensor.start(config)
                 }
@@ -98,7 +102,9 @@ public class AWSensor: NSObject {
                     print("[AWSensor][settings]\(settings)")
                 }
                 DispatchQueue.main.async {
-                    self.startWorkout()
+                    if (config.useWorkoutSession) {
+                        self.startWorkout()
+                    }
                     if let hz = settings["motion_sensor_hz"] as? Int {
                         config.motionSensorHz = hz
                     }
@@ -139,6 +145,7 @@ public class AWSensor: NSObject {
                 }
             }
         }
+        WCSession.default.sendMessage(["status":1], replyHandler: nil)
     }
     
     public func stop(){
@@ -153,19 +160,65 @@ public class AWSensor: NSObject {
             timer.invalidate()
             recoveryFileTransferTimer = nil
         }
+        WCSession.default.sendMessage(["status":0], replyHandler: nil)
     }
+    
+    
+    public func removeSensorDataFile(_ fileName:String) {
+        let fileManager = FileManager.default
+        let docDir = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let filePath = docDir.appendingPathComponent(fileName)
+        if (filePath.isFileURL) {
+            do {
+                try fileManager.removeItem(at: filePath)
+            } catch {
+                print("\(#function): \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    public func getAllSensorDataFiles() -> [URL] {
+        do {
+            let fileManager = FileManager.default
+            let docDir = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let files = try fileManager.contentsOfDirectory(at: docDir, includingPropertiesForKeys: [])
+            return files
+        }catch {
+            print("\(#function):error: \(error.localizedDescription)")
+        }
+        return []
+    }
+    
     
     public func recoveryFileTransfer(){
-        if (self.config.debug) {
-            print("[Manula Sync] start")
+        if (self.config.debug) { print(#function) }
+        cancelAllFileTransferProcesses()
+        startFileTransferProcessesWithUnsycnedFiles()
+
+    }
+    
+    public func cancelAllFileTransferProcesses(){
+        // NOTE: cancel all sync progress
+        for fileTransfer in WCSession.default.outstandingFileTransfers {
+            fileTransfer.progress.cancel()
+            fileTransfer.cancel()
+            if (config.debug) {
+                print("\(#function): \(fileTransfer.file.fileURL.lastPathComponent) = \(fileTransfer.progress.isIndeterminate), \(fileTransfer.progress.isPaused), \(fileTransfer.progress.isCancelled), \(fileTransfer.progress.isFinished)" )
+            }
         }
-        
+
+    }
+    
+    public func startFileTransferProcessesWithUnsycnedFiles(){
         for file in getUntransferredFiles() {
-            self.fileTransfer(file)
+            if (config.debug) {
+                print("\(#function): \(file.lastPathComponent)")
+            }
+            self.transferFile(file)
         }
     }
     
-    public func fileTransfer(_ file:URL){
+    public func transferFile(_ file:URL){
         if (config.debug) {
             print("[Manual Sync] start sync -> \(file.lastPathComponent)")
         }
@@ -180,56 +233,34 @@ public class AWSensor: NSObject {
     
     public func getUntransferredFiles(debug:Bool = false) -> [URL] {
         var untransferredFiles = [URL]()
-        do {
-            let docDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let files = try FileManager.default.contentsOfDirectory(at: docDir, includingPropertiesForKeys: [])
-            
-            if (files.count == 0 && debug) {
-                print("[Manual Sync] no cache files")
-            }
+        let storedSensorDataFiles = self.getAllSensorDataFiles()
+       
+        if (storedSensorDataFiles.count == 0 && debug) {
+            print("\(#function) No un-transferred files")
+        }
 
-            for file in files {
-                if (motionSensor.sensorData?.filePath.lastPathComponent == file.lastPathComponent){
-                    continue
+        for file in storedSensorDataFiles {
+            var isCurrentWorkingFile = false
+            for f in [motionSensor.sensorData,
+                      hrSensor.sensorData,
+                      audioSensor.sensorData,
+                      audioSensor.audioClassifierData,
+                      batterySensor.sensorData,
+                      bluetoothSensor.sensorDataBluetooth,
+                      locationSensor.sensorDataLocation,
+                      locationSensor.sensorDataHeading
+                ] {
+                // print(file.lastPathComponent, f?.filePath.lastPathComponent ?? "")
+                if (file.lastPathComponent == f?.filePath.lastPathComponent) {
+                    isCurrentWorkingFile = true
+                    break
                 }
-                if (hrSensor.sensorData?.filePath.lastPathComponent == file.lastPathComponent) {
-                    continue
-                }
-                if (audioSensor.sensorData?.filePath.lastPathComponent == file.lastPathComponent) {
-                    continue
-                }
-                if (audioSensor.audioRecorder != nil) {
-                    if (audioSensor.audioRecorder.url.lastPathComponent == file.lastPathComponent) {
-                        continue
-                    }
-                }
-                if (batterySensor.sensorData?.filePath.lastPathComponent == file.lastPathComponent) {
-                    continue
-                }
-                
-                var isTransferring = false
-                let transferringFiles = WCSession.default.outstandingFileTransfers
-                for tr in transferringFiles {
-                    if (tr.file.fileURL == file && tr.isTransferring) {
-                        isTransferring = true
-                    }
-                }
-                if (isTransferring) {
-                    if (debug){
-                        print("\(#function) -> transferring file: \(file.lastPathComponent)")
-                    }
-                    continue;
-                }
-                if (debug) {
-                    print("\(#function) -> untranfer file: \(file.lastPathComponent) ")
-                }
-                untransferredFiles.append(file)
             }
-        } catch {
-            print(error.localizedDescription)
+            if isCurrentWorkingFile { continue }
+            untransferredFiles.append(file)
         }
         if debug {
-            print("\(#function) -> \(untransferredFiles.count)")
+            print("\(#function) -> Untransferred Files = \(untransferredFiles.count)")
         }
         return untransferredFiles
     }
@@ -322,17 +353,17 @@ extension AWSensor: HKWorkoutSessionDelegate{
 
 extension AWSensor: WCSessionDelegate{
     public func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
-        print(#function)
-        
-        switch activationState {
-        case .notActivated:
-            print("notActivated")
-        case .inactive:
-            print("inactive")
-        case .activated:
-            print("activated")
-        @unknown default:
-            print("unkwnon")
+        if (config.debug) {
+            switch activationState {
+            case .notActivated:
+                print("\(#function): notActivated")
+            case .inactive:
+                print("\(#function): inactive")
+            case .activated:
+                print("\(#function): activated")
+            @unknown default:
+                print("\(#function): unkwnon")
+            }
         }
     }
     
@@ -347,15 +378,34 @@ extension AWSensor: WCSessionDelegate{
                 print("\(#function): complete the file transfer & remove a local file -> \(fileTransfer.progress.fractionCompleted) \(fileTransfer.file.fileURL.lastPathComponent)")
             }
             if (fileTransfer.progress.isFinished) {
-                do {
-                    try FileManager.default.removeItem(at: fileTransfer.file.fileURL)
-                }catch{
-                    print(error)
-                }
+                removeSensorDataFile(fileTransfer.file.fileURL.lastPathComponent)
             }
         }
+    }
+    
+//    public func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+//        print("\(#function): \(message.debugDescription)")
+//        
+//        guard let eventName = message["event_name"] as? String,
+//                let filePath = message["file_path"] as? String else {
+//            return
+//        }
+//        
+//        print(eventName, filePath)
+//    }
+    
+    public func session(_ session: WCSession, didReceiveMessage message: [String : Any], replyHandler: @escaping ([String : Any]) -> Void) {
+        print("\(#function): \(message.debugDescription)")
         
-
+        guard let eventName = message["event_name"] as? String,
+                let fileName = message["file_path"] as? String else {
+            return
+        }
+        
+        if (eventName == "file_transfer_completion") {
+            if (config.debug) { print("[Remove Synced File]: ", fileName) }
+            removeSensorDataFile(fileName)
+        }
     }
     
 }
@@ -386,10 +436,10 @@ public class FileTransferManager {
                         try FileManager.default.removeItem(at: fileURL)
                     // 既にファイルが圧縮済みの場合
                     }else{
+                        if debug {
+                            print("\(#function) -> transfer a file \(fileURL.lastPathComponent) without data compression")
+                        }
                         DispatchQueue.main.async {
-                            if debug {
-                                print("\(#function) -> transfer a file \(fileURL.lastPathComponent) withoud data compression")
-                            }
                             WCSession.default.transferFile(fileURL, metadata: nil)
                         }
                     }
