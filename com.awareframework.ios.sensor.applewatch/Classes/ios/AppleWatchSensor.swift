@@ -10,7 +10,7 @@ public class AppleWatchSensor: AwareSensor {
     
     var LAST_ACTIVITY = AppleWatchMotionData()
     
-    private var syncCompletion = SyncCompletionWatch()
+    private var syncProgress = WatchSyncProgress()
     
     public class Config:SensorConfig{
             
@@ -56,7 +56,7 @@ public class AppleWatchSensor: AwareSensor {
         ]
         for name in subscribeNotificationNames {
             self.notificationCenter.addObserver(self,
-                                                selector: #selector(self.completeDataSyncOneSensor),
+                                                selector: #selector(self.syncProgressEvent),
                                                 name: name,
                                                 object: nil)
         }
@@ -77,7 +77,7 @@ public class AppleWatchSensor: AwareSensor {
     public override func sync(force: Bool = false) {
         if let engine = self.dbEngine {
             
-            syncCompletion = SyncCompletionWatch()
+            syncProgress = WatchSyncProgress()
             
             self.notificationCenter.post(name: .actionAwareAppleWatchSync , object: self)
             
@@ -87,8 +87,9 @@ public class AppleWatchSensor: AwareSensor {
                              DbSyncConfig().apply{config in
                 config.debug = self.CONFIG.debug
                 config.compactDataFormat = true
+                config.batchSize = 1400
                 config.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch_motion.sync.queue")
-                config.completionHandler = { (status, error) in
+                config.progressHandler = { (status, error) in
                     var userInfo: Dictionary<String,Any> = [AppleWatchSensor.EXTRA_STATUS :status]
                     if let e = error {
                         userInfo[AppleWatchSensor.EXTRA_ERROR] = e
@@ -105,7 +106,7 @@ public class AppleWatchSensor: AwareSensor {
                 config.debug = self.CONFIG.debug
                 config.compactDataFormat = true
                 config.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch_noise.sync.queue")
-                config.completionHandler = {(status, error) in
+                config.progressHandler = {(status, error) in
                     var userInfo: Dictionary<String,Any> = [AppleWatchSensor.EXTRA_STATUS: status]
                     if let e = error {
                         userInfo[AppleWatchSensor.EXTRA_ERROR] = e
@@ -120,7 +121,7 @@ public class AppleWatchSensor: AwareSensor {
                 config.debug = self.CONFIG.debug
                 config.compactDataFormat = true
                 config.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch_audioclass.sync.queue")
-                config.completionHandler = {(status, error) in
+                config.progressHandler = {(status, error) in
                     var userInfo: Dictionary<String, Any> = [AppleWatchSensor.EXTRA_STATUS: status]
                     if let e = error {
                         userInfo[AppleWatchSensor.EXTRA_ERROR] = e
@@ -136,7 +137,7 @@ public class AppleWatchSensor: AwareSensor {
                 config.debug = self.CONFIG.debug
                 config.compactDataFormat = true
                 config.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch_hr.sync.queue")
-                config.completionHandler = {(status, error) in
+                config.progressHandler = {(status, error) in
                     var userInfo: Dictionary<String, Any> = [AppleWatchSensor.EXTRA_STATUS: status]
                     if let e = error {
                         userInfo[AppleWatchSensor.EXTRA_ERROR] = e
@@ -150,7 +151,7 @@ public class AppleWatchSensor: AwareSensor {
                 config.debug = self.CONFIG.debug
                 config.compactDataFormat = true
                 config.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch_location.sync.queue")
-                config.completionHandler = {(status, error) in
+                config.progressHandler = {(status, error) in
                     var userInfo: Dictionary<String, Any> = [AppleWatchSensor.EXTRA_STATUS: status]
                     if let e = error {
                         userInfo[AppleWatchSensor.EXTRA_ERROR] = e
@@ -164,7 +165,7 @@ public class AppleWatchSensor: AwareSensor {
                 config.debug = self.CONFIG.debug
                 config.compactDataFormat = true
                 config.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch_heading.sync.queue")
-                config.completionHandler = {(status, error) in
+                config.progressHandler = {(status, error) in
                     var userInfo: Dictionary<String, Any> = [AppleWatchSensor.EXTRA_STATUS: status]
                     if let e = error {
                         userInfo[AppleWatchSensor.EXTRA_ERROR] = e
@@ -177,7 +178,7 @@ public class AppleWatchSensor: AwareSensor {
                 config.debug = self.CONFIG.debug
                 config.compactDataFormat = true
                 config.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch_battery.sync.queue")
-                config.completionHandler = {(status, error) in
+                config.progressHandler = {(status, error) in
                     var userInfo: Dictionary<String, Any> = [AppleWatchSensor.EXTRA_STATUS: status]
                     if let e = error {
                         userInfo[AppleWatchSensor.EXTRA_ERROR] = e
@@ -190,7 +191,7 @@ public class AppleWatchSensor: AwareSensor {
                 config.debug = self.CONFIG.debug
                 config.compactDataFormat = true
                 config.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch_bluetooth.sync.queue")
-                config.completionHandler = {(status, error) in
+                config.progressHandler = {(status, error) in
                     var userInfo: Dictionary<String, Any> = [AppleWatchSensor.EXTRA_STATUS: status]
                     if let e = error {
                         userInfo[AppleWatchSensor.EXTRA_ERROR] = e
@@ -203,18 +204,25 @@ public class AppleWatchSensor: AwareSensor {
         }
     }
     
-    private class SyncCompletionWatch {
-        var motion = false
-        var noise  = false
-        var audioClass = false
-        var location = false
-        var hr = false
-        var battery = false
-        var heading = false
-        var bluetooth = false
+    private class WatchSyncProgress {
+        var motion = 0.0
+        var noise  = 0.0
+        var audioClass = 0.0
+        var location = 0.0
+        var hr = 0.0
+        var battery = 0.0
+        var heading = 0.0
+        var bluetooth = 0.0
         
         func isCompleted() -> Bool {
-            if (motion && noise && audioClass && location && hr && battery && heading && bluetooth) {
+            if (motion == 1 &&
+                noise == 1 &&
+                audioClass == 1 &&
+                location == 1 &&
+                hr == 1 &&
+                battery == 1 &&
+                heading  == 1 &&
+                bluetooth == 1) {
                 return true
             }
             return false
@@ -226,50 +234,73 @@ public class AppleWatchSensor: AwareSensor {
             
             var total = 0.0
             for s in sensors {
-                if (s == true) {
-                    total += 1.0
-                }
+                total += s
             }
             
             return total/sensorCount
+        }
         
-             
+        func toString() {
+            let sensors = [motion, noise, audioClass, location, hr, battery, heading, bluetooth]
+            print(sensors)
         }
     }
     
-    @objc func completeDataSyncOneSensor(notification: NSNotification) {
+    @objc func syncProgressEvent(notification: NSNotification) {
         
-        if (notification.name == .actionAwareAppleWatchSyncCompletionMotion) {
-            self.syncCompletion.motion = true
-        }else if (notification.name == .actionAwareAppleWatchSyncCompletionHR) {
-            self.syncCompletion.hr = true
-        }else if (notification.name == .actionAwareAppleWatchSyncCompletionNoise) {
-            self.syncCompletion.noise = true
-        }else if (notification.name == .actionAwareAppleWatchSyncCompletionHeading) {
-            self.syncCompletion.heading = true
-        }else if (notification.name == .actionAwareAppleWatchSyncCompletionBattery) {
-            self.syncCompletion.battery = true
-        }else if (notification.name == .actionAwareAppleWatchSyncCompletionLocation) {
-            self.syncCompletion.location = true
-        }else if (notification.name == .actionAwareAppleWatchSyncCompletionBluetooth) {
-            self.syncCompletion.bluetooth = true
-        }else if (notification.name == .actionAwareAppleWatchSyncCompletionAudioClass){
-            self.syncCompletion.audioClass = true
+        var progress = 0.0
+        if let userInfo = notification.userInfo as? [String:Any]{
+            if let p = userInfo[AppleWatchSensor.EXTRA_STATUS] as? Double {
+                if p > 1 {
+                    progress = 1
+                }else{
+                    progress = p
+                }
+            }
+            if let status = userInfo[AppleWatchSensor.EXTRA_STATUS] as? Bool {
+                if status {
+                    progress = 1
+                }else{
+                    progress = 0
+                }
+            }
+        }
+        
+        if (progress > 0) {
+            if (notification.name == .actionAwareAppleWatchSyncCompletionMotion) {
+                self.syncProgress.motion = progress
+            }else if (notification.name == .actionAwareAppleWatchSyncCompletionHR) {
+                self.syncProgress.hr = progress
+            }else if (notification.name == .actionAwareAppleWatchSyncCompletionNoise) {
+                self.syncProgress.noise = progress
+            }else if (notification.name == .actionAwareAppleWatchSyncCompletionHeading) {
+                self.syncProgress.heading = progress
+            }else if (notification.name == .actionAwareAppleWatchSyncCompletionBattery) {
+                self.syncProgress.battery = progress
+            }else if (notification.name == .actionAwareAppleWatchSyncCompletionLocation) {
+                self.syncProgress.location = progress
+            }else if (notification.name == .actionAwareAppleWatchSyncCompletionBluetooth) {
+                self.syncProgress.bluetooth = progress
+            }else if (notification.name == .actionAwareAppleWatchSyncCompletionAudioClass){
+                self.syncProgress.audioClass = progress
+            }
         }
 
+
         if (self.CONFIG.debug) {
-            print("Sync Progress: ", self.syncCompletion.progress(), notification)
+            print("Sync Progress: ", self.syncProgress.progress(), notification)
+            print(self.syncProgress.toString())
         }
         
-        if (self.syncCompletion.isCompleted()){
+        if (self.syncProgress.isCompleted()){
             self.notificationCenter.post(name: .actionAwareAppleWatchSyncCompletion,
                                          object: self,
                                          userInfo: nil)
-            self.syncCompletion = SyncCompletionWatch()
+            self.syncProgress = WatchSyncProgress()
         }else{
             self.notificationCenter.post(name: .actionAwareAppleWatchSyncProgress,
                                          object: self,
-                                         userInfo: [AppleWatchSensor.EXTRA_LABEL:self.syncCompletion.progress()])
+                                         userInfo: [AppleWatchSensor.EXTRA_LABEL:self.syncProgress.progress()])
         }
     }
     
@@ -329,6 +360,8 @@ public class AppleWatchSensor: AwareSensor {
                     } else if (components[0] == "heading") {
                         saveHeadingData(data:decompressedData, path:newPath)
                     } else if (components[0] == "audio-classifier"){
+                        saveAudioClassifierData(data:decompressedData, path:newPath)
+                    } else if (components[0] == "audio-classifier-simple"){
                         saveAudioClassifierData(data:decompressedData, path:newPath)
                     } else if (components[0] == "bluetooth") {
                         saveBluetoothData(data:decompressedData, path:newPath)
@@ -676,15 +709,15 @@ extension AppleWatchSensor {
                 continue
             }
             
-            let watchAudioData = AppleWatchAudioClassifierData()
+            let watchAudioClassData = AppleWatchAudioClassifierData()
             let timestamp = Int64(Double(elements[0]) ?? 0)
-            watchAudioData.timestamp = timestamp
-            watchAudioData.confidence = Double(elements[2]) ?? 0
-            watchAudioData.identifier = String(elements[1])
-            watchAudioData.label = CONFIG.label
+            watchAudioClassData.timestamp = timestamp
+            watchAudioClassData.confidence = Double(elements[2]) ?? 0
+            watchAudioClassData.identifier = String(elements[1])
+            watchAudioClassData.label = CONFIG.label
 //            self.CONFIG.sensorObserver?.onAudioChanged(data: watchAudioData.toDictionary())
             
-            buffer.append(watchAudioData)
+            buffer.append(watchAudioClassData)
             if buffer.count > 100 {
                 dbEngine?.save(buffer)
                 buffer.removeAll()

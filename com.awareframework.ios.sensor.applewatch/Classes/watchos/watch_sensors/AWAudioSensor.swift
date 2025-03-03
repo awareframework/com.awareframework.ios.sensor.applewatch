@@ -47,7 +47,7 @@ public class AWAudioSensorConfig {
     public var audioRecordQuality:AVAudioQuality = .medium;
     public var audioRecordNumberOfChannels = 1;
     
-    public var storeOnlyFilterData = false
+    public var storeOnlyFilterData = true
 //    public var storeOnlyTargetAudioClass:[String]?
     public var storeOnlyTopK:Int?
 //    public var storeOnlyAboveCertenConfidenceLevel:Double?
@@ -71,10 +71,14 @@ extension AWAudioSensor: SNResultsObserving {
                 for audioClass in result.classifications.sorted(by: { a, b in
                     return (a.confidence > b.confidence);
                 })[..<topK] {
-                    print(audioClass.identifier, audioClass.confidence)
+                    if (self.config.debug) {
+                        print(audioClass.identifier, audioClass.confidence)
+                    }
                     self.audioClassifierSimpleData?.update(identifier: audioClass.identifier, confidence: audioClass.confidence )
                 }
-                print("--------")
+                if (self.config.debug) {
+                    print("--------")
+                }
             } else {
                 self.audioClassifierData?.update(result.classifications)
             }

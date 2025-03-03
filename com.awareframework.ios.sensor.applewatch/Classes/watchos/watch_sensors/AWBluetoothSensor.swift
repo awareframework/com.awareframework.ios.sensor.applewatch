@@ -33,7 +33,6 @@ public class AWBluetoothSensor: NSObject, ObservableObject {
     
     override init() {
         super.init()
-        self.centralManager = CBCentralManager(delegate: self, queue: nil)
 //        self.peripheralManager = CBPeripheralManager(delegate: self, queue: nil)
     }
     
@@ -56,6 +55,11 @@ public class AWBluetoothSensor: NSObject, ObservableObject {
         if self.config.debug {
             print("スキャン開始", Thread.isMainThread)
         }
+        
+        if (self.centralManager == nil) {
+            self.centralManager = CBCentralManager(delegate: self, queue: nil)
+        }
+        
         // タイマーを設定する
         sensorDataBluetooth = AWBluetoothSensorData()
         sensorDataBluetooth?.openFileHandler()

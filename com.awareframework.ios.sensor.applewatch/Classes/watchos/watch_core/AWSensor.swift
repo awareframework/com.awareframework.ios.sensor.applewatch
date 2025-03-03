@@ -377,9 +377,10 @@ extension AWSensor: WCSessionDelegate{
             if config.debug {
                 print("\(#function): complete the file transfer & remove a local file -> \(fileTransfer.progress.fractionCompleted) \(fileTransfer.file.fileURL.lastPathComponent)")
             }
-            if (fileTransfer.progress.isFinished) {
-                removeSensorDataFile(fileTransfer.file.fileURL.lastPathComponent)
-            }
+            /// NOTE: 本体からのレスポンスがあった時のみ削除
+//            if (fileTransfer.progress.isFinished) {
+//                removeSensorDataFile(fileTransfer.file.fileURL.lastPathComponent)
+//            }
         }
     }
     
