@@ -1,3 +1,8 @@
+#if os(iOS)
+
+
+#elseif os(watchOS)
+
 import HealthKit
 import CoreML
 import UserNotifications
@@ -468,3 +473,5 @@ public class FileTransferManager {
 
     }
 }
+
+#endif

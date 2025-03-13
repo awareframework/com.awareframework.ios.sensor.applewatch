@@ -5,6 +5,11 @@
 //  Created by Yuuki Nishiyama on 2021/06/01.
 //
 
+#if os(iOS)
+
+
+#elseif os(watchOS)
+
 import UIKit
 import Foundation
 import MediaPlayer
@@ -692,3 +697,4 @@ class SignalProcessing {
 
 }
 
+#endif

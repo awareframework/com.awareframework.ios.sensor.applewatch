@@ -5,8 +5,13 @@
 //  Created by Yuuki Nishiyama on 2021/06/01.
 //
 
-import CoreLocation
 
+#if os(iOS)
+
+
+#elseif os(watchOS)
+
+import CoreLocation
 
 public class AWLocationSensor: NSObject, ObservableObject {
     
@@ -274,3 +279,5 @@ public struct AWHeadingPoint{
     public var date: Date
     public var value:CLHeading
 }
+
+#endif

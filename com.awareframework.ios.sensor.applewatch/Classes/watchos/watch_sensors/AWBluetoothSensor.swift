@@ -5,6 +5,11 @@
 //  Created by Yuuki Nishiyama on 2023/06/07.
 //
 
+#if os(iOS)
+
+
+#elseif os(watchOS)
+
 import Foundation
 import CoreBluetooth
 
@@ -226,3 +231,5 @@ public class AWBluetoothSensorData:AWSensorData {
         self.save(values)
     }
 }
+
+#endif

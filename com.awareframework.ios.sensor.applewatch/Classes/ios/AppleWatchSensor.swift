@@ -1,3 +1,5 @@
+#if os(iOS)
+
 import WatchConnectivity
 import com_awareframework_ios_sensor_core
 import DataCompression
@@ -87,7 +89,7 @@ public class AppleWatchSensor: AwareSensor {
                              DbSyncConfig().apply{config in
                 config.debug = self.CONFIG.debug
                 config.compactDataFormat = true
-                config.batchSize = 1400
+                config.batchSize = 1000
                 config.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch_motion.sync.queue")
                 config.progressHandler = { (status, error) in
                     var userInfo: Dictionary<String,Any> = [AppleWatchSensor.EXTRA_STATUS :status]
@@ -327,7 +329,9 @@ public class AppleWatchSensor: AwareSensor {
             let newPath = createFileUrl(fileName: file.fileURL.lastPathComponent)
             try FileManager.default.copyItem(at: file.fileURL, to: newPath)
             
-            print("\(#function): \(file.fileURL.lastPathComponent) -> received" )
+            if self.CONFIG.debug {
+                print("\(#function): \(file.fileURL.lastPathComponent) -> received" )
+            }
             
             let data = try Data(contentsOf: newPath)
             if let decompressedData = data.decompress(withAlgorithm: .zlib) {
@@ -368,7 +372,9 @@ public class AppleWatchSensor: AwareSensor {
                     }
                 }
             }else {
-                print("\(#function): \(file.fileURL.lastPathComponent) -> null")
+                if self.CONFIG.debug {
+                    print("\(#function): \(file.fileURL.lastPathComponent) -> null")
+                }
             }
         }catch {
             print(error)
@@ -897,4 +903,6 @@ extension AppleWatchSensor: WCSessionDelegate  {
     
 }
 
+#elseif os(watchOS)
 
+#endif

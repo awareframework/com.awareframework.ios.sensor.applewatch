@@ -1,0 +1,51 @@
+{
+  "originHash" : "177d3fac0010c70d52b25167de35d907133a806a17ada287ba3d7159e9c6e243",
+  "pins" : [
+    {
+      "identity" : "com.awareframework.ios.sensor.core",
+      "kind" : "remoteSourceControl",
+      "location" : "git@github.com:awareframework/com.awareframework.ios.sensor.core.git",
+      "state" : {
+        "revision" : "77f519945e3574c1d2da2ba80205064da49ef884",
+        "version" : "0.7.7"
+      }
+    },
+    {
+      "identity" : "datacompression",
+      "kind" : "remoteSourceControl",
+      "location" : "git@github.com:mw99/DataCompression.git",
+      "state" : {
+        "revision" : "5ab15951321b08b74511601cbd0497667649d70b",
+        "version" : "3.8.0"
+      }
+    },
+    {
+      "identity" : "realm-core",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/realm/realm-core.git",
+      "state" : {
+        "revision" : "15493076ad9fef22c16cc64cbfbf9e5b65c385f9",
+        "version" : "20.1.0"
+      }
+    },
+    {
+      "identity" : "realm-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "git@github.com:realm/realm-swift.git",
+      "state" : {
+        "revision" : "bae6c4be7df169fdb047d0ad63f902c1e2665e83",
+        "version" : "20.0.1"
+      }
+    },
+    {
+      "identity" : "swiftyjson",
+      "kind" : "remoteSourceControl",
+      "location" : "git@github.com:SwiftyJSON/SwiftyJSON.git",
+      "state" : {
+        "revision" : "af76cf3ef710b6ca5f8c05f3a31307d44a3c5828",
+        "version" : "5.0.2"
+      }
+    }
+  ],
+  "version" : 3
+}

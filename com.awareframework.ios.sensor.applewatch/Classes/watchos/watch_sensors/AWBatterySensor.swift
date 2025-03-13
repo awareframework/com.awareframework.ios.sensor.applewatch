@@ -5,11 +5,14 @@
 //  Created by Yuuki Nishiyama on 2022/12/31.
 //
 
+#if os(iOS)
+
+#elseif os(watchOS)
+
 import WatchKit
 import CoreMotion
 import WatchConnectivity
 import SwiftUI
-
 
 public class AWBatterySensor: NSObject, ObservableObject {
     public var sensorData:AWBatterySensorData?
@@ -134,3 +137,7 @@ public struct AWBatteryLinePoint {
     public var date: Date
     public var value: Double
 }
+
+
+
+#endif

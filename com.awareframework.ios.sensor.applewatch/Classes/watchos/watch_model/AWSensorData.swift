@@ -5,6 +5,11 @@
 //  Created by Yuuki Nishiyama on 2022/12/17.
 //
 
+#if os(iOS)
+
+
+#elseif os(watchOS)
+
 import Foundation
 import CoreMotion
 
@@ -78,3 +83,5 @@ public class AWSensorData:NSObject{
     }
 
 }
+
+#endif

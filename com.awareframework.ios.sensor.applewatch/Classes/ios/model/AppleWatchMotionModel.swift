@@ -1,3 +1,5 @@
+#if os(iOS)
+
 import UIKit
 import com_awareframework_ios_sensor_core
 
@@ -194,3 +196,7 @@ public class AppleWatchBluetoothData: AwareObject {
     }
     
 }
+
+#elseif os(watchOS)
+
+#endif

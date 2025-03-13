@@ -5,6 +5,11 @@
 ////  Created by Yuuki Nishiyama on 2022/12/17.
 ////
 //
+
+#if os(iOS)
+
+#elseif os(watchOS)
+
 import WatchKit
 import CoreMotion
 import WatchConnectivity
@@ -235,3 +240,5 @@ public class AWMotionSensorData: AWSensorData {
     }
     
 }
+
+#endif

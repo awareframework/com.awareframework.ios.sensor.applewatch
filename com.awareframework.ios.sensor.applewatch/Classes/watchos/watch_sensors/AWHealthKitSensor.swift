@@ -5,7 +5,11 @@
 //  Created by Yuuki Nishiyama on 2022/12/20.
 //
 
-//import Foundation
+#if os(iOS)
+
+
+#elseif os(watchOS)
+
 import WatchKit
 import CoreMotion
 import WatchConnectivity
@@ -152,3 +156,5 @@ public class AWHealthKitSensor: NSObject, ObservableObject {
         }
     }
 }
+
+#endif
