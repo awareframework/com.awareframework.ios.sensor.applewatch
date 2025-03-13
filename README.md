@@ -1,9 +1,6 @@
 # com.awareframework.ios.sensor.applewatch
 
-[![CI Status](https://img.shields.io/travis/1227623/com.awareframework.ios.sensor.applewatch.svg?style=flat)](https://travis-ci.org/1227623/com.awareframework.ios.sensor.applewatch)
-[![Version](https://img.shields.io/cocoapods/v/com.awareframework.ios.sensor.applewatch.svg?style=flat)](https://cocoapods.org/pods/com.awareframework.ios.sensor.applewatch)
-[![License](https://img.shields.io/cocoapods/l/com.awareframework.ios.sensor.applewatch.svg?style=flat)](https://cocoapods.org/pods/com.awareframework.ios.sensor.applewatch)
-[![Platform](https://img.shields.io/cocoapods/p/com.awareframework.ios.sensor.applewatch.svg?style=flat)](https://cocoapods.org/pods/com.awareframework.ios.sensor.applewatch)
+[![License](https://github.com/tetujin/com.awareframework.ios.sensor.applewatch/blob/main/LICENSE)](LICENSE)
 
 ## Overview
 **AWARE-watchOS** is a passive wearable sensing framework for watchOS. This framework allows us to continually collect multiple sensor data on smartwatches with a minimum workload. Especially, this framework collects eight sensors on the smartwatch and transfers the collected data as a compressed CSV file every few minutes (by default, five minutes). The transferred files are managed on an eco-system of the AWARE framework. Moreover, as an option, data in transferred files can be stored or streamed in the paired smartphone application.
@@ -64,7 +61,17 @@ For example:
 
 ## Installation
 
-You can integrate this framework into your project via CocoaPods.
+You can integrate this framework into your project via Swift Package Manager (SwiftPM) or CocoaPods.
+
+### SwiftPM
+1. Open Package Manager Windows
+    * Open `Xcode` -> Select `Menu Bar` -> `File` -> `App Package Dependencies...` 
+
+2. Find the package using the manager
+    * Select `Search Package URL` and type `git@github.com:tetujin/com.awareframework.ios.sensor.applewatch.git`
+
+3. Import package both `iOS` and `watchOS` targets.
+
 
 ### CocoaPods with <u>GitHub</u>
 [CocoaPods](https://cocoapods.org) is a defact standard library manager for iOS application development. By using this library manager, you can download and install this library from GitHub. Before executing the following steps, please install and setup the CococaPod environment.
@@ -166,7 +173,7 @@ More detailed sample codes can be found [here](https://github.com/tetujin/com.aw
 
 ## Author
 
-Yuuki Nishiyama (The University of Tokyo), yuukin@iis.u-tokyo.ac.jp
+Yuuki Nishiyama (The University of Tokyo), nishiyama@csis.u-tokyo.ac.jp
 
 ## License
 

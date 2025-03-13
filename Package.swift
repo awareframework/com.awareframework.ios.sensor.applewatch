@@ -11,18 +11,7 @@ let package = Package(
             targets: [
                 "com.awareframework.ios.sensor.applewatch"
             ]
-        ),        // .library(
-        //     name: "com.awareframework.ios.sensor.applewatch_ios",
-        //     targets: [
-        //         "com.awareframework.ios.sensor.applewatch_ios"
-        //     ]
-        // ),
-        // .library(
-        //     name: "com.awareframework.ios.sensor.applewatch_watchos",
-        //     targets: [
-        //         "com.awareframework.ios.sensor.applewatch_watchos"
-        //     ]
-        // )
+        ),
     ],
     dependencies: [
         .package(url: "git@github.com:awareframework/com.awareframework.ios.sensor.core.git", from: "0.7.7"),
