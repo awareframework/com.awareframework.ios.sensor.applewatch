@@ -35,3 +35,9 @@ Carthage/Build
 #
 Example/Pods/
 Pods/
+
+.DS_Store
+.build
+Packages
+.swiftpm
+.*.sw?
