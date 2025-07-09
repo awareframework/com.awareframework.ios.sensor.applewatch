@@ -1,4 +1,4 @@
-# com.awareframework.ios.sensor.applewatch
+# AWARE: AppleWatch
 
 [![License](https://github.com/tetujin/com.awareframework.ios.sensor.applewatch/blob/main/LICENSE)](LICENSE)
 
@@ -99,24 +99,6 @@ end
 ```shell
 pod install
 ```
-
-<!--
-### CocoaPods with <u>a public repository</u>
-
-__NOTE: This installing method is not supported yet!!!__
-
-`com.awareframework.ios.sensor.applewatch` is available through [CocoaPods](https://cocoapods.org). To install
-it, simply add the following line to your Podfile:
-
-```ruby
-pod 'com.awareframework.ios.sensor.applewatch'
-```
--->
-
-<!-- 
-### Swift Packages
-TBD 
--->
 
 ## Permissions
 To enable background sensing on Apple Watch, you need to change **Capability** and **background mode** settings on Xcode.
