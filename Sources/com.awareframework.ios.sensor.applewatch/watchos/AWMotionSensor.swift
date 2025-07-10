@@ -192,7 +192,7 @@ public class AWMotionSensor: AwareSensor, ObservableObject {
                 
                 if let accData = self.motion.accelerometerData,
                    let motionData = self.motion.deviceMotion{
-                    let data = AWMotionSensorData(timestamp: Int64(accData.timestamp)*1000,
+                    let data = AWMotionSensorData(timestamp: Int64(accData.timestamp*1000.0),
                                                   accX: accData.acceleration.x,
                                                   accY: accData.acceleration.y,
                                                   accZ: accData.acceleration.z,
