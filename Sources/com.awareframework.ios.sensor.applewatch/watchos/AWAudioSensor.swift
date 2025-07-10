@@ -96,8 +96,8 @@ final public class AWAudioSensor: AwareSensor, ObservableObject{
     let TAG = "AWARE::AppleWatch:audio"
 
     
-    var audioLabelSensor:AWAudioLabelSensor?
-    var ambientNoiseSensor:AWAmbientNoiseSensor?
+    public var audioLabelSensor:AWAudioLabelSensor?
+    public var ambientNoiseSensor:AWAmbientNoiseSensor?
     
     public var CONFIG = AWAudioSensor.Config()
     
