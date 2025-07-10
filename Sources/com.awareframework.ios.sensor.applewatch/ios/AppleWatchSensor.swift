@@ -61,13 +61,14 @@ public class AppleWatchSensor: AwareSensor {
                                                 object: nil)
         }
         
-    }
-    
-    public override func start(){
         if WCSession.isSupported() {
             WCSession.default.delegate = self
             WCSession.default.activate()
         }
+    }
+    
+    public override func start(){
+
     }
     
     public override func stop(){
@@ -386,6 +387,10 @@ public class AppleWatchSensor: AwareSensor {
                 replyHandler(
                     ["motion_sensor_hz":self.CONFIG.motionSensorHz,
                      "file_transfer_interval_seconds": self.CONFIG.fileTransferIntervalSeconds]
+                )
+            }else if (method == "get_device_id") {
+                replyHandler(
+                    ["device_id":AwareUtils.getCommonDeviceId()]
                 )
             }
         }

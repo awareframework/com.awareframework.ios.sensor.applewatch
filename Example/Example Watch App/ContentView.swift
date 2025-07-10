@@ -7,7 +7,9 @@
 
 import SwiftUI
 
+import com_awareframework_ios_core
 import com_awareframework_ios_sensor_applewatch_watchOS
+import WatchConnectivity
 
 struct ContentView: View {
     
@@ -42,19 +44,24 @@ struct ContentView: View {
         config.dbHost = "hogehoge.an.r.appspot.com/xx/xx/"
     })
     
+    let device = AWDeviceSensor(AWDeviceSensor.Config().apply{config in
+        config.debug = true
+        config.pairedDeviceIdReceivedHandler = {deviceId in
+            print(deviceId)
+        }
+    })
+    
     
     @State private var audioSensorEnabled = false
     
     var body: some View {
         
         VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
+            Text(AwareUtils.getCommonDeviceId())
             Toggle("Sensor", isOn: $audioSensorEnabled)
                 .toggleStyle(SwitchToggleStyle(tint: .blue)).onChange(of: audioSensorEnabled) { oldValue, newValue in
                     if (audioSensorEnabled) {
-                        AWSensorManager.shared.set(sensors: [audio]) {
+                        AWSensorManager.shared.set(sensors: [motion]) {
                             AWSensorManager.shared.start {
                                 print("start")
                             }
@@ -66,7 +73,15 @@ struct ContentView: View {
                     }
                 }
             Button("Sync") {
-                AWSensorManager.shared.sync(force: true)
+                motion.syncConfig?.progressHandler = { progress, error in
+                    print("--->", progress)
+                }
+//                AWSensorManager.shared.sync(force: true, dbHost: "")
+            }
+            Button("Get Paired Device Info") {
+                if AWDeviceSensor.getPairedDeviceId() == nil{
+                    device.start()
+                }
             }
         }
         .padding()

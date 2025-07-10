@@ -50,8 +50,8 @@ public class AWMotionSensor: AwareSensor, ObservableObject {
     
     public class Config:SensorConfig{
                 
-        public var motionSensorHz  = 100
-        public var saveIntervalSeconds = 60
+        public var motionSensorHz  = 30
+        public var saveIntervalSeconds = 10
         
         public override init(){
             super.init()

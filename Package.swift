@@ -16,7 +16,7 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/awareframework/com.awareframework.ios.core.git", from: "0.0.4"),
+        .package(url: "https://github.com/awareframework/com.awareframework.ios.core.git", from: "0.0.5"),
 //        .package(path: "../com.awareframework.ios.core"),
         .package(url: "https://github.com/mw99/DataCompression.git", from: "3.8.0")
     ],
