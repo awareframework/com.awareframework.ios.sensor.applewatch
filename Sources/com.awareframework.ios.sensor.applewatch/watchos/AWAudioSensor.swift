@@ -47,7 +47,7 @@ extension AWAudioSensor: SNResultsObserving {
                 return (a.confidence > b.confidence);
             })[..<topK] {
                 /** ===== save audio label data ======  */
-                let d = AWAudioLabelData(timestamp:Int64(now.timeIntervalSince1970) * 1000,
+                let d = AWAudioLabelData(timestamp:Int64(now.timeIntervalSince1970 * 1000),
                                          audioLabel: audioClass.identifier,
                                             confidence: audioClass.confidence,
                                             label: self.CONFIG.label)
@@ -268,7 +268,7 @@ final public class AWAudioSensor: AwareSensor, ObservableObject{
              
                         /** ===  save ambient noise data ===  */
                         let now = Date()
-                        let d = AWAmbientNoiseData(timestamp: Int64(now.timeIntervalSince1970)*1000,
+                        let d = AWAmbientNoiseData(timestamp: Int64(now.timeIntervalSince1970 * 1000),
                                                    db: Double(db),
                                                    label: self.CONFIG.label)
                         

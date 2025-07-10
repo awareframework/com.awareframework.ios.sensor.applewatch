@@ -163,7 +163,7 @@ extension AWLocationSensor: CLLocationManagerDelegate {
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         for location in locations {
 //            self.sensorDataLocation?.update(location, label: self.config.label)
-            let data = AWLocationSensorData(timestamp: Int64(location.timestamp.timeIntervalSince1970) * 1000,
+            let data = AWLocationSensorData(timestamp: Int64(location.timestamp.timeIntervalSince1970 * 1000),
                                                             latitude: location.coordinate.latitude,
                                                             longitude: location.coordinate.longitude,
                                                             altitude: location.altitude,

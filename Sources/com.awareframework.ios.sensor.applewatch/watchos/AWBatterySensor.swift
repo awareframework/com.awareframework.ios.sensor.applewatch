@@ -126,7 +126,7 @@ public class AWBatterySensor: AwareSensor, ObservableObject {
                     self.batteryLevels.removeFirst()
                 }
                 
-                let data = AWBatterySensorData(timestamp: Int64(now.timeIntervalSince1970)*1000,
+                let data = AWBatterySensorData(timestamp: Int64(now.timeIntervalSince1970*1000),
                                                 batteryLavel: batteryLevel,
                                                 batteryState: batteryState.rawValue,
                                                 label: self.CONFIG.label)

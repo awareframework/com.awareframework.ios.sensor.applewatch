@@ -149,7 +149,7 @@ public class AWHealthKitSensor: AwareSensor, ObservableObject {
             let now = Date()
             let hr = sample.quantity.doubleValue(for: self.heartRateUnit)
             
-            let data = AWHealthKitSensorData(timestamp: Int64(now.timeIntervalSince1970) * 1000,
+            let data = AWHealthKitSensorData(timestamp: Int64(now.timeIntervalSince1970 * 1000) ,
                                              hr: hr,
                                              label: self.CONFIG.label)
             self.dbEngine?.save(data.toDictionary())
