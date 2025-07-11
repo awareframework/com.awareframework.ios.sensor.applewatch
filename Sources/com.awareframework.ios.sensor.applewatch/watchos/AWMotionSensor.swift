@@ -174,25 +174,9 @@ public class AWMotionSensor: AwareSensor, ObservableObject {
                 
                 let now = Date()
                 
-                if let acc = self.motion.accelerometerData {
-                    self.accelerations.append(AWAccelerationLinePoint(date: now,
-                                                                      x: acc.acceleration.x ,
-                                                                      y: acc.acceleration.y,
-                                                                      z: acc.acceleration.z))
-                    if (self.accelerations.count > 100) {self.accelerations.removeFirst()}
-                }
-                
-                if let deviceMotion = self.motion.deviceMotion {
-                    self.motions.append(AWRotationLinePoint(date: now,
-                                                            x: deviceMotion.rotationRate.x,
-                                                            y: deviceMotion.rotationRate.y,
-                                                            z: deviceMotion.rotationRate.z))
-                    if (self.motions.count > 100) {self.motions.removeFirst()}
-                }
-                
                 if let accData = self.motion.accelerometerData,
                    let motionData = self.motion.deviceMotion{
-                    let data = AWMotionSensorData(timestamp: Int64(accData.timestamp*1000.0),
+                    let data = AWMotionSensorData(timestamp: Int64(now.timeIntervalSince1970 * 1000),
                                                   accX: accData.acceleration.x,
                                                   accY: accData.acceleration.y,
                                                   accZ: accData.acceleration.z,
@@ -212,6 +196,21 @@ public class AWMotionSensor: AwareSensor, ObservableObject {
                     self.dataBuffer.append(data.toDictionary())
                 }
 
+                if let acc = self.motion.accelerometerData {
+                    self.accelerations.append(AWAccelerationLinePoint(date: now,
+                                                                      x: acc.acceleration.x ,
+                                                                      y: acc.acceleration.y,
+                                                                      z: acc.acceleration.z))
+                    if (self.accelerations.count > 100) {self.accelerations.removeFirst()}
+                }
+                
+                if let deviceMotion = self.motion.deviceMotion {
+                    self.motions.append(AWRotationLinePoint(date: now,
+                                                            x: deviceMotion.rotationRate.x,
+                                                            y: deviceMotion.rotationRate.y,
+                                                            z: deviceMotion.rotationRate.z))
+                    if (self.motions.count > 100) {self.motions.removeFirst()}
+                }
                 
                 let gap = now.timeIntervalSince(self.lastBreakTime)
                 if (gap > Double(self.CONFIG.saveIntervalSeconds)){
