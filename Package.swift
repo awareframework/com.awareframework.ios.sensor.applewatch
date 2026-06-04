@@ -4,7 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "com.awareframework.ios.sensor.applewatch",
-    platforms: [.iOS(.v18), .watchOS(.v8)],
+    platforms: [.iOS(.v16), .watchOS(.v8)],
     products: [
         .library(
             name: "com.awareframework.ios.sensor.applewatch",
@@ -16,9 +16,9 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/awareframework/com.awareframework.ios.core.git", from: "0.0.5"),
-//        .package(path: "../com.awareframework.ios.core"),
-        .package(url: "https://github.com/mw99/DataCompression.git", from: "3.8.0")
+        .package(url: "https://github.com/awareframework/com.awareframework.ios.core.git", from: "1.1.0"),
+        .package(url: "https://github.com/mw99/DataCompression.git", from: "3.8.0"),
+        .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.3.0"),
     ],
     targets: [
         // プラットフォーム間共有実装
@@ -26,7 +26,8 @@ let package = Package(
             name: "com.awareframework.ios.sensor.applewatch.shared",
             dependencies: [
                 .product(name: "com.awareframework.ios.core", package: "com.awareframework.ios.core"),
-                .product(name: "DataCompression", package: "DataCompression")
+                .product(name: "DataCompression", package: "DataCompression"),
+                .product(name: "GRDB", package: "GRDB.swift"),
             ],
             path: "Sources/com.awareframework.ios.sensor.applewatch/shared"
         ),

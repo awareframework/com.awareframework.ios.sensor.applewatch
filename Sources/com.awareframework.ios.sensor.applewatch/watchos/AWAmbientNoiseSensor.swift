@@ -19,15 +19,6 @@ public class AWAmbientNoiseSensor:AwareSensor {
         self.CONFIG.dbPath = AWAmbientNoiseData.databaseTableName
         self.CONFIG.dbTableName = AWAmbientNoiseData.databaseTableName
         self.initializeDbEngine(config: self.CONFIG)
-        self.dbEngine?.dictToModelHandler = { (dict:Dictionary<String, Any>) -> Any  in
-            return AWAmbientNoiseData(dict)
-        }
-        self.dbEngine?.modelToDictHandler = { (model:Any) -> Dictionary<String, Any>  in
-            if let model = model as? AWAmbientNoiseData {
-                return model.toDictionary()
-            }
-            return [:]
-        }
         super.syncConfig = DbSyncConfig().apply(closure: { config in
             config.serverType = self.CONFIG.serverType
             config.debug = self.CONFIG.debug

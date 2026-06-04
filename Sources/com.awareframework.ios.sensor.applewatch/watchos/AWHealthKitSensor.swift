@@ -57,15 +57,6 @@ public class AWHealthKitSensor: AwareSensor, ObservableObject {
         super.init()
         self.CONFIG = config
         self.initializeDbEngine(config: config)
-        self.dbEngine?.dictToModelHandler = { (dict:Dictionary<String, Any>) -> Any in
-            return AWHealthKitSensorData(dict)
-        }
-        self.dbEngine?.modelToDictHandler = {(model:Any) -> Dictionary<String, Any> in
-            if let model = model as? AWHealthKitSensorData {
-                return model.toDictionary()
-            }
-            return [:]
-        }
         super.syncConfig = DbSyncConfig().apply(closure: { config in
             config.serverType = self.CONFIG.serverType
             config.debug = self.CONFIG.debug
@@ -152,7 +143,7 @@ public class AWHealthKitSensor: AwareSensor, ObservableObject {
             let data = AWHealthKitSensorData(timestamp: Int64(now.timeIntervalSince1970 * 1000) ,
                                              hr: hr,
                                              label: self.CONFIG.label)
-            self.dbEngine?.save(data.toDictionary())
+            self.dbEngine?.save([data])
             if (self.CONFIG.debug) {
                 print(self.TAG, now, hr)
             }

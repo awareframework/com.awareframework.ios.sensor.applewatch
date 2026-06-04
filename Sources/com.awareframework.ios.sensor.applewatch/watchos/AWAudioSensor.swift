@@ -57,7 +57,7 @@ extension AWAudioSensor: SNResultsObserving {
                 }
                 
                 if let sqliteEngine = self.audioLabelSensor?.dbEngine {
-                    sqliteEngine.save(d.toDictionary())
+                    sqliteEngine.save([d])
                 }
                 /** ============================ */
             }
@@ -273,7 +273,7 @@ final public class AWAudioSensor: AwareSensor, ObservableObject{
                                                    label: self.CONFIG.label)
                         
                         if let sqliteEngine = self.ambientNoiseSensor?.dbEngine {
-                            sqliteEngine.save(d.toDictionary())
+                            sqliteEngine.save([d])
                         }
                         
                         if (self.CONFIG.debug) {

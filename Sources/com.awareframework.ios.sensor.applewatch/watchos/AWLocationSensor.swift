@@ -65,16 +65,6 @@ public class AWLocationSensor: AwareSensor, ObservableObject {
         self.CONFIG = config
         self.initializeDbEngine(config: config)
         
-        self.dbEngine?.dictToModelHandler = { (dict:Dictionary<String, Any>) -> Any  in
-            return AWLocationSensorData(dict)
-        }
-        
-        self.dbEngine?.modelToDictHandler = { (model:Any) -> Dictionary<String, Any>  in
-            if let model = model as? AWLocationSensorData {
-                return model.toDictionary()
-            }
-            return [:]
-        }
         
         super.syncConfig = DbSyncConfig().apply(closure: { config in
             config.serverType = self.CONFIG.serverType
@@ -176,7 +166,7 @@ extension AWLocationSensor: CLLocationManagerDelegate {
                                                             courseAccuracy: location.courseAccuracy,
                                                             label: self.CONFIG.label)
             if let sqlite = self.dbEngine as? SQLiteEngine {
-                sqlite.save( data.toDictionary() )
+                sqlite.save([data])
                 if (self.CONFIG.debug) {
                     print(TAG, location.timestamp, data.latitude, data.longitude)
                 }

@@ -19,15 +19,6 @@ public class AWAudioLabelSensor:AwareSensor {
         self.CONFIG.dbTableName = AWAudioLabelData.databaseTableName
         self.CONFIG.dbPath = AWAudioLabelData.databaseTableName
         self.initializeDbEngine(config: self.CONFIG)
-        self.dbEngine?.dictToModelHandler = { (dict:Dictionary<String, Any>) -> Any  in
-            return AWAudioLabelData(dict)
-        }
-        self.dbEngine?.modelToDictHandler = { (model:Any) -> Dictionary<String, Any>  in
-            if let model = model as? AWAudioLabelData {
-                return model.toDictionary()
-            }
-            return [:]
-        }
         super.syncConfig = DbSyncConfig().apply(closure: { config in
             config.serverType = self.CONFIG.serverType
             config.debug = self.CONFIG.debug

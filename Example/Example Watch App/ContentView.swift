@@ -2,89 +2,131 @@
 //  ContentView.swift
 //  Example Watch App
 //
-//  Created by Yuuki Nishiyama on 2025/07/08.
-//
 
 import SwiftUI
-
 import com_awareframework_ios_core
 import com_awareframework_ios_sensor_applewatch_watchOS
 import WatchConnectivity
 
 struct ContentView: View {
-    
-    let audio = AWAudioSensor(AWAudioSensor.Config().apply(closure: {config in
-        config.debug = true
-        config.activateAmbientNoiseSensor = true
-        config.activateAudioClassificationSensor = true
-        config.storeOnlyTopK = 10
-    }));
-    
-    let battery = AWBatterySensor(AWBatterySensor.Config().apply{ config in
-        config.debug = true
-        config.intervalSeconds = 1
-    })
-    
-    let location = AWLocationSensor(AWLocationSensor.Config().apply{ config in
-        config.debug = true
-    })
-    
-    let motion = AWMotionSensor(AWMotionSensor.Config().apply{config in
+
+    // ── Sensors ──────────────────────────────────────────────────────────────
+    let motion = AWMotionSensor(AWMotionSensor.Config().apply { config in
         config.debug = true
         config.motionSensorHz = 100
         config.saveIntervalSeconds = 5
     })
-    
-    let healthKit = AWHealthKitSensor(AWHealthKitSensor.Config().apply {config in
+
+    let battery = AWBatterySensor(AWBatterySensor.Config().apply { config in
         config.debug = true
+        config.intervalSeconds = 60
     })
-    
-    let bluetooth = AWBluetoothSensor(AWBluetoothSensor.Config().apply {config in
-        config.debug = true
-        config.dbHost = "hogehoge.an.r.appspot.com/xx/xx/"
-    })
-    
-    let device = AWDeviceSensor(AWDeviceSensor.Config().apply{config in
-        config.debug = true
-        config.pairedDeviceIdReceivedHandler = {deviceId in
-            print(deviceId)
-        }
-    })
-    
-    
-    @State private var audioSensorEnabled = false
-    
+
+    // ── State ─────────────────────────────────────────────────────────────────
+    @State private var sensingEnabled = false
+    @State private var motionCount   = 0
+    @State private var batteryCount  = 0
+
+    @ObservedObject private var transfer: AWDataTransferManager = .shared
+
     var body: some View {
-        
-        VStack {
-            Text(AwareUtils.getCommonDeviceId())
-            Toggle("Sensor", isOn: $audioSensorEnabled)
-                .toggleStyle(SwitchToggleStyle(tint: .blue)).onChange(of: audioSensorEnabled) { oldValue, newValue in
-                    if (audioSensorEnabled) {
-                        AWSensorManager.shared.set(sensors: [motion]) {
-                            AWSensorManager.shared.start {
-                                print("start")
+        NavigationView {
+            List {
+
+                // ── センサー制御 ───────────────────────────────────────────────
+                Section("センサー") {
+                    Toggle("計測", isOn: $sensingEnabled)
+                        .onChange(of: sensingEnabled) { _, newValue in
+                            if newValue {
+                                AWSensorManager.shared.set(sensors: [motion, battery]) {
+                                    AWSensorManager.shared.start { }
+                                }
+                            } else {
+                                AWSensorManager.shared.stop { }
+                            }
+                            refreshCounts()
+                        }
+
+                    HStack {
+                        Label("モーション", systemImage: "waveform.path.ecg")
+                            .font(.caption)
+                        Spacer()
+                        Text("\(motionCount) 件")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    HStack {
+                        Label("バッテリー", systemImage: "battery.100")
+                            .font(.caption)
+                        Spacer()
+                        Text("\(batteryCount) 件")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                // ── データ転送 ─────────────────────────────────────────────────
+                Section("転送") {
+
+                    // 転送開始ボタン + バッジ
+                    Button {
+                        refreshCounts()
+                        AWSensorManager.shared.transferAllData { error in
+                            if let error {
+                                print("[Transfer] エラー: \(error)")
                             }
                         }
-                    }else{
-                        AWSensorManager.shared.stop {
-                            print("stop")
+                    } label: {
+                        HStack {
+                            Label("転送開始", systemImage: "arrow.up.to.line.circle.fill")
+                            Spacer()
+                            AWDataTransferBadge(manager: transfer)
+                        }
+                    }
+                    .disabled(transfer.state.isActive)
+
+                    // 転送詳細画面へのリンク
+                    NavigationLink {
+                        AWDataTransferProgressView(manager: transfer)
+                    } label: {
+                        HStack {
+                            Label("転送状況", systemImage: "chart.bar.fill")
+                            Spacer()
+                            Text(transfer.state.displayText)
+                                .font(.caption2)
+                                .foregroundColor(stateColor)
                         }
                     }
                 }
-            Button("Sync") {
-                motion.syncConfig?.progressHandler = { progress, error in
-                    print("--->", progress)
-                }
-//                AWSensorManager.shared.sync(force: true, dbHost: "")
-            }
-            Button("Get Paired Device Info") {
-                if AWDeviceSensor.getPairedDeviceId() == nil{
-                    device.start()
+
+                // ── デバイス情報 ───────────────────────────────────────────────
+                Section("デバイス") {
+                    Text(AwareUtils.getCommonDeviceId())
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
                 }
             }
+            .navigationTitle("AWARE Watch")
+            .onAppear { refreshCounts() }
         }
-        .padding()
+    }
+
+    // MARK: - Helpers
+
+    private func refreshCounts() {
+        motionCount  = motion.dbEngine?.count(filter: nil) ?? 0
+        batteryCount = battery.dbEngine?.count(filter: nil) ?? 0
+    }
+
+    private var stateColor: Color {
+        switch transfer.state {
+        case .completed: return .green
+        case .failed:    return .red
+        case .idle:      return .secondary
+        default:         return .blue
+        }
     }
 }
 

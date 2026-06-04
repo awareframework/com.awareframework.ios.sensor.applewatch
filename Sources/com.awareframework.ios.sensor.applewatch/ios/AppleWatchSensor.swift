@@ -2,6 +2,7 @@
 
 import WatchConnectivity
 import com_awareframework_ios_core
+import com_awareframework_ios_sensor_applewatch_shared
 import DataCompression
 
 public class AppleWatchSensor: AwareSensor {
@@ -9,18 +10,36 @@ public class AppleWatchSensor: AwareSensor {
     public static let TAG = "AWARE::AppleWatch"
     public var CONFIG:AppleWatchSensor.Config = Config()
     public var isWatchCollectingData = false
+    public var messageHandler: ((_ message: [String: Any]) -> Void)?
     
     private var syncProgress = WatchSyncProgress()
+    private var pairedWatchDeviceId: String?
+    private var lastCommunicationMessageAt: Date?
+    private var lastFileTransferAt: Date?
+    private var lastCommunicationError: String?
     
     public class Config:SensorConfig{
-            
+
         public var fileTransferIntervalSeconds:Double = 60 * 15 // 15 minutes
-        
-        public var motionSensorHz:Int = 100 
+
+        public var motionSensorHz:Int = 100
         public var sensorObserver:AppleWatchObserver?
-        
+
         public var keepOriginalFileFromWatch:Bool = false
-        
+
+        /// Called on the main thread whenever a chunk sent by `AWDataTransferManager`
+        /// (watchOS) is received and decompressed successfully.
+        ///
+        /// - Parameters:
+        ///   - tableName:   The SQLite table the records originate from (e.g. `"watch_motion"`).
+        ///   - chunkIndex:  1-based index of this chunk within the transfer batch.
+        ///   - totalChunks: Total number of chunks in the batch for this table.
+        ///   - records:     Decoded JSON rows as `[[String: Any]]`.
+        public var receivedDataHandler: ((_ tableName: String,
+                                          _ chunkIndex: Int,
+                                          _ totalChunks: Int,
+                                          _ records: [[String: Any]]) -> Void)?
+
         public override init() {
             super.init()
             dbPath = "aware_applewatch"
@@ -321,67 +340,156 @@ public class AppleWatchSensor: AwareSensor {
 
     
     public func didReceive(file: WCSessionFile) {
+        lastFileTransferAt = Date()
+
+        let fileName = file.fileURL.lastPathComponent
+        let newPath  = createFileUrl(fileName: fileName)
+
+        // Remove any stale copy with the same name so copyItem never throws EEXIST.
+        try? FileManager.default.removeItem(at: newPath)
+
         do {
-        
-            let newPath = createFileUrl(fileName: file.fileURL.lastPathComponent)
             try FileManager.default.copyItem(at: file.fileURL, to: newPath)
-            
-            if self.CONFIG.debug {
-                print("\(#function): \(file.fileURL.lastPathComponent) -> received" )
-            }
-            
+        } catch {
+            print("[AWDataTransfer] copyItem failed for \(fileName): \(error)")
+            lastCommunicationError = error.localizedDescription
+            return
+        }
+
+        if CONFIG.debug {
+            print("\(#function): \(fileName) received, metadata=\(file.metadata?.description ?? "nil")")
+        }
+
+        // Route AWDataTransferManager files — by metadata type (primary) or
+        // by filename prefix (fallback when metadata is nil).
+        let isAWTransfer = (file.metadata?["type"] as? String == "AWDataTransfer")
+                        || fileName.hasPrefix("aw_")
+        if isAWTransfer {
+            handleAWDataTransferFile(newPath, metadata: file.metadata)
+            return
+        }
+
+        // Legacy / other file handling.
+        do {
             let data = try Data(contentsOf: newPath)
             if let decompressedData = data.decompress(withAlgorithm: .zlib) {
-                if (CONFIG.keepOriginalFileFromWatch) {
+                if CONFIG.keepOriginalFileFromWatch {
                     var originalFilePath = newPath.lastPathComponent
-                    let result = originalFilePath.range(of: ".zlib")
-                    if let theRange = result {
+                    if let theRange = originalFilePath.range(of: ".zlib") {
                         originalFilePath.removeSubrange(theRange)
                         let originalFileUrl = createFileUrl(fileName: originalFilePath)
                         try decompressedData.write(to: originalFileUrl)
-                        if let observer = self.CONFIG.sensorObserver {
-                            observer.didReceive(file: originalFileUrl)
-                        }
+                        CONFIG.sensorObserver?.didReceive(file: originalFileUrl)
                     }
                 }
-                let components = newPath.lastPathComponent.split(separator: "_")
-                if (components.count > 0) {
-//                    if (components[0] == "ambient") {
-//                        saveAmbientNoiseData(data: decompressedData, path: newPath)
-//                    } else if (components[0] == "motion"){
-//                        saveMotionData(data: decompressedData, path: newPath)
-//                    } else if (components[0] == "healthkit") {
-//                       saveHealthKitData(data: decompressedData, path: newPath)
-//                    } else if (components[0] == "audio") {
-//                        saveRawAudioData(data:decompressedData, path:newPath)
-//                    } else if (components[0] == "battery") {
-//                        saveBatteryData(data:decompressedData, path:newPath)
-//                    } else if (components[0] == "location") {
-//                        saveLocationData(data:decompressedData, path:newPath)
-//                    } else if (components[0] == "heading") {
-//                        saveHeadingData(data:decompressedData, path:newPath)
-//                    } else if (components[0] == "audio-classifier"){
-//                        saveAudioClassifierData(data:decompressedData, path:newPath)
-//                    } else if (components[0] == "audio-classifier-simple"){
-//                        saveAudioClassifierData(data:decompressedData, path:newPath)
-//                    } else if (components[0] == "bluetooth") {
-//                        saveBluetoothData(data:decompressedData, path:newPath)
-//                    }
+            } else if CONFIG.debug {
+                print("\(#function): \(fileName) -> decompression returned nil")
+            }
+        } catch {
+            print(error)
+            lastCommunicationError = error.localizedDescription
+        }
+    }
+
+    /// Decompress and decode a zlib-compressed JSON chunk sent by `AWDataTransferManager`.
+    /// Handles both row-oriented (`[[String:Any]]`) and columnar (`[String:Any]` with `"fmt":"col"`)
+    /// payloads transparently.
+    private func handleAWDataTransferFile(_ fileURL: URL, metadata: [String: Any]?) {
+        do {
+            let compressed = try Data(contentsOf: fileURL)
+            guard let decompressed = compressed.decompress(withAlgorithm: .zlib) else {
+                if CONFIG.debug {
+                    print("\(#function): decompression failed for \(fileURL.lastPathComponent)")
                 }
-            }else {
-                if self.CONFIG.debug {
-                    print("\(#function): \(file.fileURL.lastPathComponent) -> null")
+                return
+            }
+
+            let json = try JSONSerialization.jsonObject(with: decompressed)
+
+            // Detect format: columnar dict vs legacy row array
+            let records: [[String: Any]]
+            if let columnar = json as? [String: Any],
+               columnar["fmt"] as? String == "col" {
+                records = expandColumnar(columnar)
+            } else if let rows = json as? [[String: Any]] {
+                records = rows
+            } else {
+                if CONFIG.debug {
+                    print("\(#function): unrecognised JSON shape for \(fileURL.lastPathComponent)")
+                }
+                return
+            }
+
+            // tableName falls back to parsing the filename when metadata is absent.
+            let tableName = metadata?["tableName"] as? String
+                ?? fileURL.lastPathComponent
+                    .components(separatedBy: "_")
+                    .dropFirst()        // drop "aw"
+                    .prefix(1)
+                    .first ?? "unknown"
+
+            // WatchConnectivity delivers plist numbers; accept Int or Int64.
+            let chunkIndex  = int(from: metadata?["chunkIndex"])  ?? 1
+            let totalChunks = int(from: metadata?["totalChunks"]) ?? 1
+
+            print("[AWDataTransfer] received: table=\(tableName) chunk=\(chunkIndex)/\(totalChunks) rows=\(records.count)")
+
+            DispatchQueue.main.async { [weak self] in
+                self?.CONFIG.receivedDataHandler?(tableName, chunkIndex, totalChunks, records)
+            }
+
+            if !CONFIG.keepOriginalFileFromWatch {
+                try? FileManager.default.removeItem(at: fileURL)
+            }
+        } catch {
+            lastCommunicationError = error.localizedDescription
+            if CONFIG.debug { print("\(#function): \(error)") }
+        }
+    }
+
+    /// Reads an Int from a plist-bridged Any value (accepts Int, Int64, NSNumber).
+    private func int(from value: Any?) -> Int? {
+        if let v = value as? Int    { return v }
+        if let v = value as? Int64  { return Int(v) }
+        if let v = value as? NSNumber { return v.intValue }
+        return nil
+    }
+
+    /// Expands a columnar payload back to `[[String: Any]]`.
+    ///
+    /// Scalar fields (non-array values) are broadcast to every row.
+    /// Array fields are distributed element-by-element.
+    private func expandColumnar(_ dict: [String: Any]) -> [[String: Any]] {
+        let count: Int
+        if let n = dict["count"] as? Int        { count = n }
+        else if let n = dict["count"] as? Int64 { count = Int(n) }
+        else { return [] }
+        guard count > 0 else { return [] }
+
+        var rows = [[String: Any]](repeating: [:], count: count)
+
+        for (key, value) in dict {
+            guard key != "fmt", key != "count" else { continue }
+
+            if let array = value as? [Any] {
+                for (i, element) in array.prefix(count).enumerated() {
+                    rows[i][key] = element
+                }
+            } else {
+                for i in 0..<count {
+                    rows[i][key] = value
                 }
             }
-        }catch {
-            print(error)
         }
+
+        return rows
     }
     
     
     
     public func didReceive(message: [String : Any],
                            replyHandler: @escaping ([String : Any]) -> Void) {
+        lastCommunicationMessageAt = Date()
         if let method = message["method"] as? String {
             if (method == "get_settings") {
                 replyHandler(
@@ -392,10 +500,97 @@ public class AppleWatchSensor: AwareSensor {
                 replyHandler(
                     ["device_id":AwareUtils.getCommonDeviceId()]
                 )
+            }else if (method == "manual_device_id_exchange") {
+                pairedWatchDeviceId = message["device_id"] as? String
+                replyHandler(
+                    ["device_id": AwareUtils.getCommonDeviceId(),
+                     "paired_device_id": pairedWatchDeviceId ?? ""]
+                )
+            }else {
+                replyHandler(["status": "unsupported"])
             }
+        } else {
+            replyHandler(["status": "ignored"])
+        }
+    }
+    
+    public func communicationDebugStatus() -> AWCommunicationDebugStatus {
+        guard WCSession.isSupported() else {
+            return AWCommunicationDebugStatus(
+                isSupported: false,
+                activationState: "unsupported",
+                isReachable: false,
+                hasContentPending: false,
+                outstandingFileTransferCount: 0,
+                outstandingUserInfoTransferCount: 0,
+                localDeviceId: AwareUtils.getCommonDeviceId(),
+                pairedDeviceId: pairedWatchDeviceId,
+                lastMessageAt: lastCommunicationMessageAt,
+                lastFileTransferAt: lastFileTransferAt,
+                lastError: lastCommunicationError
+            )
+        }
+        
+        let session = WCSession.default
+        return AWCommunicationDebugStatus(
+            isSupported: true,
+            activationState: session.activationState.debugDescription,
+            isReachable: session.isReachable,
+            hasContentPending: session.hasContentPending,
+            outstandingFileTransferCount: session.outstandingFileTransfers.count,
+            outstandingUserInfoTransferCount: session.outstandingUserInfoTransfers.count,
+            localDeviceId: AwareUtils.getCommonDeviceId(),
+            pairedDeviceId: pairedWatchDeviceId,
+            lastMessageAt: lastCommunicationMessageAt,
+            lastFileTransferAt: lastFileTransferAt,
+            lastError: lastCommunicationError
+        )
+    }
+    
+    public func requestManualDeviceIdExchange(_ handler: @escaping (Result<String, Error>) -> Void) {
+        guard WCSession.isSupported() else {
+            handler(.failure(AppleWatchCommunicationError.unsupported))
+            return
+        }
+        
+        let message = [
+            "method": "manual_device_id_exchange",
+            "device_id": AwareUtils.getCommonDeviceId(),
+        ]
+        WCSession.default.sendMessage(message) { [weak self] response in
+            self?.lastCommunicationMessageAt = Date()
+            let watchDeviceId = response["device_id"] as? String ?? ""
+            self?.pairedWatchDeviceId = watchDeviceId.isEmpty ? nil : watchDeviceId
+            handler(.success(watchDeviceId))
+        } errorHandler: { [weak self] error in
+            self?.lastCommunicationError = error.localizedDescription
+            handler(.failure(error))
         }
     }
         
+}
+
+private enum AppleWatchCommunicationError: LocalizedError {
+    case unsupported
+    
+    var errorDescription: String? {
+        "WatchConnectivity is not supported on this device."
+    }
+}
+
+private extension WCSessionActivationState {
+    var debugDescription: String {
+        switch self {
+        case .notActivated:
+            return "notActivated"
+        case .inactive:
+            return "inactive"
+        case .activated:
+            return "activated"
+        @unknown default:
+            return "unknown"
+        }
+    }
 }
 
 extension AppleWatchSensor {
@@ -866,6 +1061,8 @@ extension AppleWatchSensor: WCSessionDelegate  {
     
 
     public func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        lastCommunicationMessageAt = Date()
+        lastCommunicationError = error?.localizedDescription
     }
     
     public func sessionDidBecomeInactive(_ session: WCSession) {
@@ -885,6 +1082,8 @@ extension AppleWatchSensor: WCSessionDelegate  {
     }
     
     public func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
+        lastCommunicationMessageAt = Date()
+        messageHandler?(message)
         if let status = message["status"] as? Int {
             if (status == 1) {
                 isWatchCollectingData = true
@@ -894,6 +1093,12 @@ extension AppleWatchSensor: WCSessionDelegate  {
                 NotificationCenter.default.post(name: Notification.Name.actionAwareAppleWatchRunning, object: nil, userInfo: [AppleWatchSensor.EXTRA_STATUS: 0])
             }
         }
+    }
+    
+    public func session(_ session: WCSession,
+                        didReceiveApplicationContext applicationContext: [String : Any]) {
+        lastCommunicationMessageAt = Date()
+        messageHandler?(applicationContext)
     }
     
     public func session(_ session: WCSession,

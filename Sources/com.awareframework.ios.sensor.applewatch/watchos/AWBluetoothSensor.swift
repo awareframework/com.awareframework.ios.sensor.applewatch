@@ -59,16 +59,6 @@ public class AWBluetoothSensor: AwareSensor, ObservableObject {
         self.CONFIG = config
         self.initializeDbEngine(config: config)
         
-        self.dbEngine?.dictToModelHandler = { (dict:Dictionary<String, Any>) -> Any  in
-            return AWBluetoothSensorData(dict)
-        }
-        
-        self.dbEngine?.modelToDictHandler = { (model:Any) -> Dictionary<String, Any>  in
-            if let model = model as? AWBluetoothSensorData {
-                return model.toDictionary()
-            }
-            return [:]
-        }
         super.syncConfig = DbSyncConfig().apply(closure: { config in
             config.serverType = self.CONFIG.serverType
             config.debug = self.CONFIG.debug
@@ -206,7 +196,7 @@ extension AWBluetoothSensor: CBCentralManagerDelegate {
                                          identifier: peripheral.identifier.uuidString,
                                          name: peripheral.name ?? "",
                                          rssi: RSSI.doubleValue)
-        self.dbEngine?.save(data.toDictionary())
+        self.dbEngine?.save([data])
         
         if (self.CONFIG.debug) {
             print(self.TAG, now, peripheral.identifier.uuidString, RSSI.doubleValue, peripheral.name ?? "" )

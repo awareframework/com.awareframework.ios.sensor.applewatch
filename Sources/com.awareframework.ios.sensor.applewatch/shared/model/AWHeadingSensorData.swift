@@ -22,7 +22,8 @@ public struct AWHeadingSensorData: BaseDbModelSQLite {
     public var deviceId: String = AwareUtils.getCommonDeviceId()
     public var label:String = ""
 
-    public static let tableName = "watch_heading"
+    public static let databaseTableName = "watch_heading"
+    public static let tableName = databaseTableName
 
     public var trueHeading: Double
     public var magneticHeading: Double
@@ -65,8 +66,12 @@ public struct AWHeadingSensorData: BaseDbModelSQLite {
             try db.create(table: AWHeadingSensorData.tableName, ifNotExists: true) { t in
                 t.autoIncrementedPrimaryKey("id")
                 t.column("timestamp", .integer).notNull()
+                t.column("deviceId", .text).notNull()
                 t.column("device_id", .text).notNull()
                 t.column("label", .text).notNull()
+                t.column("timezone", .integer).notNull()
+                t.column("os", .text).notNull()
+                t.column("jsonVersion", .integer).notNull()
                 t.column("true_heading", .double).notNull()
                 t.column("magnetic_heading", .double).notNull()
                 t.column("heading_accuracy", .double).notNull()

@@ -1,13 +1,13 @@
 {
-  "originHash" : "51950e1844fe5cfa447afceb83e224399e715818115159b938d97898f89b6b07",
+  "originHash" : "69fed15d9df007af3acd1c5cfc5c0c68c437a38c25776a8e2503552f67f46ad2",
   "pins" : [
     {
       "identity" : "com.awareframework.ios.core",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/awareframework/com.awareframework.ios.core.git",
       "state" : {
-        "revision" : "58ed107d6c5d87103f98feac60abe8bb28464f53",
-        "version" : "0.0.5"
+        "revision" : "7d0c08213468420d623c2e2e6879e155d7e378d2",
+        "version" : "1.1.0"
       }
     },
     {
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mw99/DataCompression.git",
       "state" : {
-        "revision" : "5ab15951321b08b74511601cbd0497667649d70b",
-        "version" : "3.8.0"
+        "revision" : "16f858982a077451ce3bdbd9144d3073ec85b6e4",
+        "version" : "3.9.0"
       }
     },
     {
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/groue/GRDB.swift.git",
       "state" : {
-        "revision" : "a5a1be26b4513dc7ec360eb56bc08a345bac6649",
-        "version" : "7.5.0"
+        "revision" : "aa0079aeb82a4bf00324561a40bffe68c6fe1c26",
+        "version" : "7.9.0"
       }
     },
     {

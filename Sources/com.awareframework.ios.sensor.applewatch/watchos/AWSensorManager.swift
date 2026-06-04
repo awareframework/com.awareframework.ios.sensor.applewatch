@@ -16,7 +16,9 @@ public class AWSensorManager: NSObject {
     public var sensors:[AwareSensor] = []
     
     let healthStore:HKHealthStore = HKHealthStore()
+    #if os(watchOS)
     var session : HKWorkoutSession?
+    #endif
     public var debug = false
     
     public func set(sensors:[AwareSensor], _ handler:(()->Void)?) {
@@ -70,12 +72,10 @@ public class AWSensorManager: NSObject {
 }
 
 /** workout sessions */
+#if os(watchOS)
 extension AWSensorManager: HKWorkoutSessionDelegate{
 
     func startWorkout() {
-        #if os(iOS)
-
-        #elseif os(watchOS)
         if (session != nil) { return }
         
         // Configure the workout session.
@@ -94,7 +94,6 @@ extension AWSensorManager: HKWorkoutSessionDelegate{
         } catch {
             fatalError("Unable to create the workout session!")
         }
-        #endif
     }
     
     
@@ -137,6 +136,13 @@ extension AWSensorManager: HKWorkoutSessionDelegate{
 //        session = nil
     }
 }
+#else
+extension AWSensorManager {
+    func startWorkout() {}
+    
+    func stopWorkout() {}
+}
+#endif
 
 extension AWSensorManager {
     public func requestPermissionNotification(completion: @escaping (Bool, Error?) -> Void){
@@ -144,11 +150,11 @@ extension AWSensorManager {
             completion(success, error)
         }
     }
-    
+
     public func requestPermissionHealthKit(completion: @escaping (Bool, Error?) -> Void){
         for s in self.sensors {
             #if os(iOS)
-                        
+
             #elseif os(watchOS)
             if let hrSensor = s as? AWHealthKitSensor {
                 hrSensor.initHealthKit { success, error in
@@ -160,3 +166,16 @@ extension AWSensorManager {
     }
 }
 
+extension AWSensorManager {
+
+    /// Transfer all locally stored sensor data to the paired iPhone using
+    /// `AWDataTransferManager`.  Data is JSON-encoded, zlib-compressed, and
+    /// split into chunks before being handed to WatchConnectivity.
+    ///
+    /// - Parameters:
+    ///   - completion: Called on the main thread when all file transfers
+    ///     complete or an error occurs.
+    public func transferAllData(completion: ((Error?) -> Void)? = nil) {
+        AWDataTransferManager.shared.transferData(sensors: sensors, completion: completion)
+    }
+}

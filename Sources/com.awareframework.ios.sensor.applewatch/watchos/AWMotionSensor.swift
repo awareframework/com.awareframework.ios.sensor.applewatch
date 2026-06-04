@@ -35,7 +35,7 @@ public class AWMotionSensor: AwareSensor, ObservableObject {
     let motion = CMMotionManager()
     let altimeter = CMAltimeter()
 
-    var dataBuffer:Array<Dictionary<String,Any>>  = []
+    var dataBuffer: [AWMotionSensorData] = []
     
     var timer:Timer? = nil
     var lastBreakTime = Date()
@@ -74,16 +74,6 @@ public class AWMotionSensor: AwareSensor, ObservableObject {
         self.CONFIG = config
         self.initializeDbEngine(config: config)
         
-        self.dbEngine?.dictToModelHandler = { (dict:Dictionary<String, Any>) -> Any  in
-            return AWMotionSensorData(dict)
-        }
-        
-        self.dbEngine?.modelToDictHandler = { (model:Any) -> Dictionary<String, Any>  in
-            if let model = model as? AWMotionSensorData {
-                return model.toDictionary()
-            }
-            return [:]
-        }
         super.syncConfig = DbSyncConfig().apply(closure: { config in
             config.serverType = self.CONFIG.serverType
             config.debug = self.CONFIG.debug
@@ -193,7 +183,7 @@ public class AWMotionSensor: AwareSensor, ObservableObject {
                                                   userAccY: motionData.userAcceleration.y,
                                                   userAccZ: motionData.userAcceleration.z,
                                                   label: self.CONFIG.label)
-                    self.dataBuffer.append(data.toDictionary())
+                    self.dataBuffer.append(data)
                 }
 
                 if let acc = self.motion.accelerometerData {

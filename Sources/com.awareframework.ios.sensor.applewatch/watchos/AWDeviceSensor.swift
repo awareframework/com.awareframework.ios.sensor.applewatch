@@ -52,16 +52,6 @@ public class AWDeviceSensor: AwareSensor, ObservableObject {
         self.initializeDbEngine(config: config)
         AWWCSessionManager.shared
         
-        self.dbEngine?.dictToModelHandler = { (dict:Dictionary<String, Any>) -> Any  in
-            return AWDeviceSensorData(dict)
-        }
-        
-        self.dbEngine?.modelToDictHandler = { (model:Any) -> Dictionary<String, Any>  in
-            if let model = model as? AWDeviceSensorData {
-                return model.toDictionary()
-            }
-            return [:]
-        }
         super.syncConfig = DbSyncConfig().apply(closure: { config in
             config.serverType = self.CONFIG.serverType
             config.debug = self.CONFIG.debug
@@ -97,7 +87,7 @@ public class AWDeviceSensor: AwareSensor, ObservableObject {
                     let data = AWDeviceSensorData(timestamp: Int64(now),
                                                   pairedIosDeviceId: did,
                                                   label: self.CONFIG.label)
-                    engine.save(data.toDictionary())
+                    engine.save([data])
                 }
                 AWDeviceSensor.setPairedDeviceId(did)
                 self.CONFIG.pairedDeviceIdReceivedHandler?(did)
