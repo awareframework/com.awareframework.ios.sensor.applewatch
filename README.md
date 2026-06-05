@@ -114,6 +114,16 @@ AWSensorManager.shared.set(sensors: [motionSensor])
 AWSensorManager.shared.transferAllData { error in
     if let error { print("Transfer failed: \(error)") }
 }
+
+// Transfer only new records since the last transfer.
+AWSensorManager.shared.transferIncrementalData { error in
+    if let error { print("Transfer failed: \(error)") }
+}
+
+// Transfer only new records and delete them from the watch database after transfer.
+AWSensorManager.shared.transferIncrementalData(deleteAfterTransfer: true) { error in
+    if let error { print("Transfer failed: \(error)") }
+}
 ```
 More detailed sample codes can be found [here](https://github.com/tetujin/com.awareframework.ios.sensor.applewatch/blob/909f71e0aadc2c05cfa0fb7f21e5584ebb095620/Example/AwareWatch%20Watch%20App/ContentView.swift#L31).
 
@@ -148,17 +158,32 @@ Each file is accompanied by WatchConnectivity metadata:
 | `totalChunks` | total number of chunks for this table |
 | `deviceId` | AWARE device identifier |
 
+### Transfer modes
+
+`AWDataTransferManager` supports two transfer modes controlled by the `transferMode` property.
+
+| Mode | Description |
+|------|-------------|
+| `.all` (default) | Every record in the database is transferred on each call, regardless of previous runs |
+| `.incremental` | Only records that have not been transferred before are sent. The highest record ID successfully transferred is saved in `UserDefaults` on the watch and used as the starting cursor on the next call. On the very first incremental call (no bookmark saved yet), all records are transferred |
+
+An optional `deleteAfterTransfer` flag causes transferred records to be deleted from the **watch-side SQLite database** once all file transfers complete successfully. This keeps watch storage lean when data is no longer needed locally.
+
 ### Configuration
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `recordsPerChunk` | `Int` | `500` | Number of sensor records packed into each compressed chunk |
 | `useColumnarFormat` | `Bool` | `true` | Encode JSON in columnar format (smaller payload) |
+| `transferMode` | `AWTransferMode` | `.all` | Transfer all records or only new records since the last successful transfer |
+| `deleteAfterTransfer` | `Bool` | `false` | Delete transferred records from the watch-side database after all transfers complete |
 | `debug` | `Bool` | `false` | Print verbose progress logs to the console |
 
 ```swift
 AWDataTransferManager.shared.recordsPerChunk = 1000
 AWDataTransferManager.shared.useColumnarFormat = true
+AWDataTransferManager.shared.transferMode = .incremental
+AWDataTransferManager.shared.deleteAfterTransfer = true
 AWDataTransferManager.shared.debug = true
 ```
 
@@ -177,17 +202,38 @@ AWDataTransferManager.shared.debug = true
 ### API
 
 ```swift
-// Start a transfer (skipped if one is already in progress)
-AWDataTransferManager.shared.transferData(sensors: sensors) { error in
+// Transfer all records (default behaviour)
+AWSensorManager.shared.transferAllData { error in
     // called on main thread when all transfers finish or fail
 }
 
-// Convenience wrapper via AWSensorManager
-AWSensorManager.shared.transferAllData { error in … }
+// Transfer all records and delete them from the watch database afterwards
+AWSensorManager.shared.transferAllData(deleteAfterTransfer: true) { error in … }
+
+// Transfer only new records since the last successful transfer
+AWSensorManager.shared.transferIncrementalData { error in … }
+
+// Transfer only new records and delete them from the watch database afterwards
+AWSensorManager.shared.transferIncrementalData(deleteAfterTransfer: true) { error in … }
+
+// Lower-level access via AWDataTransferManager directly
+AWDataTransferManager.shared.transferMode = .incremental
+AWDataTransferManager.shared.deleteAfterTransfer = true
+AWDataTransferManager.shared.transferData(sensors: sensors) { error in … }
 
 // Cancel all in-flight transfers
 AWDataTransferManager.shared.cancel()
 ```
+
+#### Incremental bookmark
+
+When `transferMode == .incremental`, the highest record ID transferred in a session is saved in `UserDefaults` under the key:
+
+```
+com.awareframework.applewatch.lastTransferred.<tableName>
+```
+
+This bookmark persists across app launches. To reset it and force a full retransfer, delete the key from `UserDefaults` or call `transferAllData` once (which ignores the bookmark).
 
 ### SwiftUI progress views (watchOS only)
 
@@ -213,6 +259,196 @@ AWDataTransferBadge()
 ```
 
 Both views are `ObservableObject`-backed and update automatically as the transfer progresses.
+
+## Server Upload
+
+Sensor data can be uploaded to a remote server from either the **Apple Watch** or the **paired iPhone**. The two paths have different trade-offs; uploading directly from the Watch is the most efficient in most cases.
+
+```
+Apple Watch ──(WatchConnectivity)──▶ iPhone ──(HTTP)──▶ Server   ← 2 hops
+Apple Watch ──────────(HTTP)──────────────────────────▶ Server   ← 1 hop  ✓ recommended
+```
+
+### Option A — Upload directly from Apple Watch (recommended)
+
+Uploading from the Watch skips the WatchConnectivity relay entirely.  Data travels in a single hop from the source to the server, which means:
+
+- No dependency on the paired iPhone being nearby or reachable.
+- Lower end-to-end latency and fewer moving parts.
+- Simpler code — one call initiates the full upload.
+
+Call `AWSensorManager.shared.sync(dbHost:)` on the Watch side at any point after sensors have been started.
+
+```swift
+// watchOS
+AWSensorManager.shared.set(sensors: [motionSensor, noiseSensor, ...]) {
+    AWSensorManager.shared.start { }
+}
+
+// Trigger upload (e.g. in a background task, on a timer, or when the workout ends)
+AWSensorManager.shared.sync(
+    force: true,
+    dbHost: "https://your-aware-server.example.com/index.php"
+)
+```
+
+`sync(dbHost:)` iterates over every registered sensor, sets the server URL on its SQLite engine, and calls `sync()` — which uploads all locally stored records to the AWARE server in batches.
+
+You can also trigger it from a single sensor's engine:
+
+```swift
+motionSensor.dbEngine?.config.host = "https://your-aware-server.example.com/index.php"
+motionSensor.sync(force: true)
+```
+
+#### Fetching settings from the paired iPhone
+
+Instead of hard-coding the server URL on the Watch, you can pull it from the iPhone at runtime using `AWWCSessionManager.shared.applyiPhoneSettings()`.  This method sends a `get_settings` request to the iPhone, reads the response, and applies the returned values to every sensor registered in `AWSensorManager`.
+
+Configure the iPhone side once:
+
+```swift
+// iOS
+let appleWatch = AppleWatchSensor(AppleWatchSensor.Config().apply { config in
+    config.dbHost = "https://your-aware-server.example.com/index.php"
+    config.motionSensorHz = 50
+    config.fileTransferIntervalSeconds = 900
+})
+SensorManager.shared.addSensors([appleWatch])
+SensorManager.shared.startAllSensors()
+```
+
+Then on the Watch, call `applyiPhoneSettings()` after sensors are started:
+
+```swift
+// watchOS
+AWSensorManager.shared.set(sensors: [motionSensor]) {
+    AWSensorManager.shared.start { }
+}
+
+AWWCSessionManager.shared.applyiPhoneSettings { settings in
+    // db_host / label / debug are applied automatically to all sensors.
+    // motion_sensor_hz and file_transfer_interval_seconds must be applied manually:
+    let hz       = settings["motion_sensor_hz"] as? Int ?? 30
+    let interval = settings["file_transfer_interval_seconds"] as? Double ?? 900
+    motionSensor.CONFIG.motionSensorHz = hz
+    AWDataTransferManager.shared.transferIntervalSeconds = interval
+
+    // Upload immediately using the server URL fetched from iPhone
+    AWSensorManager.shared.sync(force: true)
+}
+```
+
+Settings returned by `get_settings`:
+
+| Key | Type | Auto-applied by `applyiPhoneSettings` | Description |
+|-----|------|---------------------------------------|-------------|
+| `db_host` | `String` | ✓ `dbEngine.config.host` | AWARE server URL. Omitted when not set on the iPhone. Set by QR code scan (`server_host`/`server_port`) |
+| `label` | `String` | ✓ `sensor.set(label:)` | Data label. Set by QR code scan (`study_key`) |
+| `debug` | `Bool` | ✓ `syncConfig.debug` | Debug logging flag |
+| `motion_sensor_hz` | `Int` | — (apply manually) | Motion sensor sampling rate |
+| `file_transfer_interval_seconds` | `Double` | — (apply manually) | Watch→iPhone transfer interval |
+| `watch_motion_enabled` | `Bool` | — (apply manually) | Whether to run the motion sensor on the Watch |
+| `watch_battery_enabled` | `Bool` | — (apply manually) | Whether to run the battery sensor on the Watch |
+| `watch_device_enabled` | `Bool` | — (apply manually) | Whether to run the device sensor on the Watch |
+| `watch_healthkit_enabled` | `Bool` | — (apply manually) | Whether to run the HealthKit (heart rate) sensor on the Watch |
+| `watch_location_enabled` | `Bool` | — (apply manually) | Whether to run the location sensor on the Watch |
+| `watch_audio_enabled` | `Bool` | — (apply manually) | Whether to run the audio/noise sensor on the Watch |
+| `watch_uwb_enabled` | `Bool` | — (apply manually) | Whether to run the UWB sensor on the Watch |
+| `watch_bluetooth_enabled` | `Bool` | — (apply manually) | Whether to run the Bluetooth sensor on the Watch |
+
+Sensor enable/disable flags are not applied automatically because `applyiPhoneSettings` does not know which sensor instances the caller has created. Apply them manually in the completion handler as shown below.
+
+```swift
+// watchOS — apply sensor on/off flags received from iPhone
+AWWCSessionManager.shared.applyiPhoneSettings { settings in
+    // db_host / label / debug are applied automatically.
+    // Sensor flags and Hz must be applied by the caller:
+    let motionOn    = settings["watch_motion_enabled"]    as? Bool ?? true
+    let batteryOn   = settings["watch_battery_enabled"]   as? Bool ?? true
+    let locationOn  = settings["watch_location_enabled"]  as? Bool ?? false
+    let audioOn     = settings["watch_audio_enabled"]     as? Bool ?? false
+    let hz          = settings["motion_sensor_hz"]        as? Int  ?? 10
+
+    // Update your sensor controller state on the main thread
+    DispatchQueue.main.async {
+        motionSensor.CONFIG.motionSensorHz = hz
+        var sensorsToStart: [AwareSensor] = []
+        if motionOn  { sensorsToStart.append(motionSensor)  }
+        if batteryOn { sensorsToStart.append(batterySensor) }
+        if locationOn { sensorsToStart.append(locationSensor) }
+        if audioOn   { sensorsToStart.append(audioSensor)   }
+
+        AWSensorManager.shared.set(sensors: sensorsToStart) {
+            AWSensorManager.shared.start { }
+        }
+    }
+}
+```
+
+#### Table names
+
+Each sensor stores its data in a named table in the local SQLite database on the Watch.  The same table name is used when uploading to the AWARE server.
+
+| Sensor | Table name |
+|--------|-----------|
+| Motion (acc, gyro, gravity …) | `watch_motion` |
+| Ambient noise | `watch_ambient_noise` |
+| Sound classification | `watch_audio_label` |
+| HealthKit (heart rate) | `watch_healthkit` |
+| Battery | `watch_battery` |
+| Bluetooth | `watch_bluetooth` |
+| Location | `watch_location` |
+| Heading | `watch_heading` |
+| Device info | `watch_device` |
+
+### Option B — Upload from the paired iPhone
+
+If you need to centralise server communication on the iPhone side (e.g. to apply authentication headers or post-process records before upload), you can:
+
+1. Transfer data from the Watch to the iPhone using `AWSensorManager.shared.transferAllData()` or `transferIncrementalData()`.
+2. Handle each received chunk on the iPhone via `receivedDataHandler`.
+3. Forward it to the server from the iPhone.
+
+Set `dbHost` in the `AppleWatchSensor` config.  The framework stores records received from the Watch in a local SQLite database on the iPhone and uploads them in batches when `sync()` is called.
+
+```swift
+// iOS
+let appleWatch = AppleWatchSensor(AppleWatchSensor.Config().apply { config in
+    config.debug  = true
+    config.dbHost = "https://your-aware-server.example.com/index.php"
+})
+
+SensorManager.shared.addSensors([appleWatch])
+SensorManager.shared.startAllSensors()
+
+// Trigger upload (call this after transferAllData completes)
+appleWatch.sync(force: true)
+// or upload all registered sensors at once:
+SensorManager.shared.syncAllSensors()
+```
+
+To schedule automatic periodic uploads use `DbSyncManager`:
+
+```swift
+let syncManager = DbSyncManager.Builder()
+    .setInterval(15)  // every 15 minutes
+    .build()
+syncManager.start()
+```
+
+Fine-grained control per table via `DbSyncConfig`:
+
+```swift
+appleWatch.dbEngine?.startSync(DbSyncConfig().apply { config in
+    config.batchSize        = 1000
+    config.removeAfterSync  = true   // delete local records after successful upload
+    config.debug            = true
+    config.completionHandler = { success, error in
+        print("Sync finished — success: \(success)")
+    }
+})
+```
 
 ## Author
 

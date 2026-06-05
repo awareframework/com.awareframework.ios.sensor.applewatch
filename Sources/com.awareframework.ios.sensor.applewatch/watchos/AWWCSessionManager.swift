@@ -41,6 +41,39 @@ public class AWWCSessionManager: NSObject, WCSessionDelegate{
             }
         }
     }
+
+    /// Fetch settings from the paired iPhone and apply them to `AWSensorManager`.
+    ///
+    /// Fields applied automatically to every sensor registered in `AWSensorManager.shared`:
+    /// - `db_host` → `dbEngine.config.host`
+    /// - `label`   → `SensorConfig.label` (via `set(label:)`)
+    /// - `debug`   → `SensorConfig.debug`
+    ///
+    /// Fields available in the returned dictionary for caller use:
+    /// - `motion_sensor_hz` — motion sensor sampling rate
+    /// - `file_transfer_interval_seconds` — Watch→iPhone transfer interval
+    /// - `watch_motion_enabled`, `watch_battery_enabled`, `watch_device_enabled`,
+    ///   `watch_healthkit_enabled`, `watch_location_enabled`, `watch_audio_enabled`,
+    ///   `watch_uwb_enabled`, `watch_bluetooth_enabled` — sensor on/off flags
+    ///   (apply these manually; only the caller knows which sensor instances to start/stop)
+    public func applyiPhoneSettings(completion: (([String: Any]) -> Void)? = nil) {
+        getSettings { settings in
+            DispatchQueue.main.async {
+                for sensor in AWSensorManager.shared.sensors {
+                    if let host = settings["db_host"] as? String, !host.isEmpty {
+                        sensor.dbEngine?.config.host = host
+                    }
+                    if let label = settings["label"] as? String {
+                        sensor.set(label: label)
+                    }
+                    if let debug = settings["debug"] as? Bool {
+                        sensor.syncConfig?.debug = debug
+                    }
+                }
+            }
+            completion?(settings)
+        }
+    }
     
     public func getPairedDeviceId(_ handler: @escaping ((String?)->Void) ) {
         WCSession.default.sendMessage(["method":"get_device_id"]) { settings in

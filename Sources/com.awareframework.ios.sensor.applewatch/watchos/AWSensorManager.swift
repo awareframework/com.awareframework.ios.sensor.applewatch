@@ -168,14 +168,38 @@ extension AWSensorManager {
 
 extension AWSensorManager {
 
-    /// Transfer all locally stored sensor data to the paired iPhone using
-    /// `AWDataTransferManager`.  Data is JSON-encoded, zlib-compressed, and
-    /// split into chunks before being handed to WatchConnectivity.
+    /// Transfer all locally stored sensor data to the paired iPhone.
+    ///
+    /// Every record in each sensor's database is included regardless of whether
+    /// it has been transferred before.
     ///
     /// - Parameters:
-    ///   - completion: Called on the main thread when all file transfers
-    ///     complete or an error occurs.
-    public func transferAllData(completion: ((Error?) -> Void)? = nil) {
+    ///   - deleteAfterTransfer: When `true`, records are deleted from the watch-side
+    ///     database after all file transfers complete successfully. Defaults to `false`.
+    ///   - completion: Called on the main thread when all file transfers complete or
+    ///     an error occurs.
+    public func transferAllData(deleteAfterTransfer: Bool = false,
+                                completion: ((Error?) -> Void)? = nil) {
+        AWDataTransferManager.shared.transferMode = .all
+        AWDataTransferManager.shared.deleteAfterTransfer = deleteAfterTransfer
+        AWDataTransferManager.shared.transferData(sensors: sensors, completion: completion)
+    }
+
+    /// Transfer only sensor records that have not been transferred in a previous session.
+    ///
+    /// The highest record ID successfully transferred is stored in UserDefaults on the
+    /// watch. Subsequent calls skip all records up to and including that ID, sending
+    /// only new data. On the very first call (no stored bookmark), all records are sent.
+    ///
+    /// - Parameters:
+    ///   - deleteAfterTransfer: When `true`, the transferred records are deleted from
+    ///     the watch-side database after the transfers complete. Defaults to `false`.
+    ///   - completion: Called on the main thread when all file transfers complete or
+    ///     an error occurs.
+    public func transferIncrementalData(deleteAfterTransfer: Bool = false,
+                                        completion: ((Error?) -> Void)? = nil) {
+        AWDataTransferManager.shared.transferMode = .incremental
+        AWDataTransferManager.shared.deleteAfterTransfer = deleteAfterTransfer
         AWDataTransferManager.shared.transferData(sensors: sensors, completion: completion)
     }
 }

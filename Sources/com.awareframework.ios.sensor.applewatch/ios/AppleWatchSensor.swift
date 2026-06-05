@@ -22,10 +22,20 @@ public class AppleWatchSensor: AwareSensor {
 
         public var fileTransferIntervalSeconds:Double = 60 * 15 // 15 minutes
 
-        public var motionSensorHz:Int = 100
+        public var motionSensorHz:Int = 10
         public var sensorObserver:AppleWatchObserver?
 
         public var keepOriginalFileFromWatch:Bool = false
+
+        // Watch sensor enable/disable flags
+        public var watchMotionEnabled:Bool    = true
+        public var watchBatteryEnabled:Bool   = true
+        public var watchDeviceEnabled:Bool    = true
+        public var watchHealthKitEnabled:Bool = true
+        public var watchLocationEnabled:Bool  = false
+        public var watchAudioEnabled:Bool     = false
+        public var watchUWBEnabled:Bool       = false
+        public var watchBluetoothEnabled:Bool = false
 
         /// Called on the main thread whenever a chunk sent by `AWDataTransferManager`
         /// (watchOS) is received and decompressed successfully.
@@ -492,10 +502,24 @@ public class AppleWatchSensor: AwareSensor {
         lastCommunicationMessageAt = Date()
         if let method = message["method"] as? String {
             if (method == "get_settings") {
-                replyHandler(
-                    ["motion_sensor_hz":self.CONFIG.motionSensorHz,
-                     "file_transfer_interval_seconds": self.CONFIG.fileTransferIntervalSeconds]
-                )
+                var settings: [String: Any] = [
+                    "motion_sensor_hz": self.CONFIG.motionSensorHz,
+                    "file_transfer_interval_seconds": self.CONFIG.fileTransferIntervalSeconds,
+                    "label": self.CONFIG.label,
+                    "debug": self.CONFIG.debug,
+                    "watch_motion_enabled":    self.CONFIG.watchMotionEnabled,
+                    "watch_battery_enabled":   self.CONFIG.watchBatteryEnabled,
+                    "watch_device_enabled":    self.CONFIG.watchDeviceEnabled,
+                    "watch_healthkit_enabled": self.CONFIG.watchHealthKitEnabled,
+                    "watch_location_enabled":  self.CONFIG.watchLocationEnabled,
+                    "watch_audio_enabled":     self.CONFIG.watchAudioEnabled,
+                    "watch_uwb_enabled":       self.CONFIG.watchUWBEnabled,
+                    "watch_bluetooth_enabled": self.CONFIG.watchBluetoothEnabled,
+                ]
+                if let host = self.CONFIG.dbHost {
+                    settings["db_host"] = host
+                }
+                replyHandler(settings)
             }else if (method == "get_device_id") {
                 replyHandler(
                     ["device_id":AwareUtils.getCommonDeviceId()]

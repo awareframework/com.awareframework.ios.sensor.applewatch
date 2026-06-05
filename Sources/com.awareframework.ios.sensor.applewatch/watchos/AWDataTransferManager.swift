@@ -10,6 +10,18 @@ import WatchConnectivity
 import DataCompression
 import com_awareframework_ios_core
 
+// MARK: - Transfer mode
+
+/// Controls which records are included in a transfer session.
+public enum AWTransferMode {
+    /// Transfer every record in the database (default).
+    case all
+    /// Transfer only records that have not been transferred before.
+    /// The highest record ID successfully transferred is persisted in UserDefaults
+    /// and used as the starting cursor on the next call.
+    case incremental
+}
+
 // MARK: - State
 
 public enum AWTransferState: Equatable {
@@ -70,6 +82,22 @@ public class AWDataTransferManager: NSObject, ObservableObject {
     /// Reduces JSON payload size by 3–5× compared to row-oriented format.
     public var useColumnarFormat: Bool = true
 
+    /// Whether to transfer all records or only records not yet transferred.
+    /// Defaults to `.all`.
+    public var transferMode: AWTransferMode = .all
+
+    /// When `true`, records that were successfully transferred are deleted from the
+    /// watch-side database after all file transfers complete.
+    public var deleteAfterTransfer: Bool = false
+
+    // Tracks which engine + id range was covered by each sensor's transfer session.
+    private struct SensorTransferRecord {
+        let engine: Engine
+        let tableName: String
+        let maxId: Int64
+    }
+    private var sensorTransferRecords: [SensorTransferRecord] = []
+
     private let workQueue = DispatchQueue(
         label: "com.awareframework.ios.sensor.applewatch.datatransfer",
         qos: .userInitiated
@@ -108,6 +136,7 @@ public class AWDataTransferManager: NSObject, ObservableObject {
         for t in pendingTransfers { t.cancel() }
         pendingTransfers.removeAll()
         chunkIDs.removeAll()
+        sensorTransferRecords.removeAll()
         cleanupTempFiles()
         publish { [weak self] in
             self?.state = .idle
@@ -128,6 +157,7 @@ public class AWDataTransferManager: NSObject, ObservableObject {
         }
         pendingTransfers.removeAll()
         chunkIDs.removeAll()
+        sensorTransferRecords.removeAll()
         tempFiles.removeAll()
     }
 
@@ -154,10 +184,16 @@ public class AWDataTransferManager: NSObject, ObservableObject {
             guard let engine = sensor.dbEngine else { continue }
             let tableName = engine.config.tableName ?? "sensor_\(sensorIndex)"
 
+            // For incremental mode, start after the last successfully transferred record.
+            let startId: Int64 = (transferMode == .incremental)
+                ? lastTransferredId(for: tableName)
+                : -1
+            let countFilter: String? = startId >= 0 ? "id > \(startId)" : nil
+
             // COUNT first — no data loaded into memory
-            let totalCount = engine.count(filter: nil)
+            let totalCount = engine.count(filter: countFilter)
             guard totalCount > 0 else {
-                if debug { print("[AWDataTransferManager] No records in '\(tableName)'") }
+                if debug { print("[AWDataTransferManager] No records in '\(tableName)' (startId=\(startId))") }
                 continue
             }
             let totalBatches = (totalCount + recordsPerChunk - 1) / recordsPerChunk
@@ -171,7 +207,7 @@ public class AWDataTransferManager: NSObject, ObservableObject {
             // Paginate: fetch recordsPerChunk rows at a time using an ID cursor.
             // Each batch is encoded, compressed, and written to disk before the next
             // batch is fetched — keeping peak memory to one batch at a time.
-            var lastId: Int64 = -1
+            var lastId: Int64 = startId
             var batchIndex = 0
 
             while batchIndex < totalBatches {
@@ -228,6 +264,14 @@ public class AWDataTransferManager: NSObject, ObservableObject {
 
                 if !shouldContinue { break }
                 lastId = newLastId
+            }
+
+            // Record the highest ID transferred for this sensor so post-transfer
+            // operations (incremental bookmark + optional delete) can use it.
+            if lastId >= 0 {
+                sensorTransferRecords.append(
+                    SensorTransferRecord(engine: engine, tableName: tableName, maxId: lastId)
+                )
             }
         }
 
@@ -330,6 +374,7 @@ public class AWDataTransferManager: NSObject, ObservableObject {
         if completedCount >= pendingTransfers.count {
             stopPolling()
             cleanupTempFiles()
+            handlePostTransfer()
             state           = .completed
             overallProgress = 1.0
             completionHandler?(nil)
@@ -343,6 +388,44 @@ public class AWDataTransferManager: NSObject, ObservableObject {
             try? FileManager.default.removeItem(at: url)
         }
         tempFiles.removeAll()
+    }
+
+    // MARK: - Post-transfer operations (incremental bookmark + optional delete)
+
+    /// Called on the main thread after all file transfers complete successfully.
+    /// - Saves per-table high-water marks when `transferMode == .incremental`.
+    /// - Deletes transferred records from each watch-side database when `deleteAfterTransfer == true`.
+    private func handlePostTransfer() {
+        for record in sensorTransferRecords {
+            if transferMode == .incremental {
+                saveLastTransferredId(record.maxId, for: record.tableName)
+                if debug {
+                    print("[AWDataTransferManager] Saved incremental bookmark: \(record.tableName) maxId=\(record.maxId)")
+                }
+            }
+
+            if deleteAfterTransfer {
+                record.engine.remove(filter: "id <= \(record.maxId)", limit: nil)
+                if debug {
+                    print("[AWDataTransferManager] Deleted transferred records: \(record.tableName) id<=\(record.maxId)")
+                }
+            }
+        }
+        sensorTransferRecords.removeAll()
+    }
+
+    // MARK: - Incremental bookmark helpers
+
+    private func incrementalKey(for tableName: String) -> String {
+        "com.awareframework.applewatch.lastTransferred.\(tableName)"
+    }
+
+    private func lastTransferredId(for tableName: String) -> Int64 {
+        UserDefaults.standard.object(forKey: incrementalKey(for: tableName)) as? Int64 ?? -1
+    }
+
+    private func saveLastTransferredId(_ id: Int64, for tableName: String) {
+        UserDefaults.standard.set(id, forKey: incrementalKey(for: tableName))
     }
 
     private func publish(_ block: @escaping () -> Void) {
