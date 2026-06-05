@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/awareframework/com.awareframework.ios.core.git",
       "state" : {
-        "revision" : "7d0c08213468420d623c2e2e6879e155d7e378d2",
-        "version" : "1.1.0"
+        "revision" : "73609fe24fa816739f285f777d622ff354c8a4cf",
+        "version" : "1.1.1"
       }
     },
     {

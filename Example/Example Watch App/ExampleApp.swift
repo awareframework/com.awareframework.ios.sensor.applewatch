@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct Example_Watch_AppApp: App {
+    @StateObject private var controller = WatchSensorController()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(controller)
         }
     }
 }

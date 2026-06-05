@@ -66,7 +66,7 @@ public class AWDataTransferManager: NSObject, ObservableObject {
 
     public static let shared = AWDataTransferManager()
 
-    // Published properties — always updated on main thread
+    // Published properties are updated on the main thread.
     @Published public var state: AWTransferState = .idle
     @Published public var totalChunks: Int = 0
     @Published public var completedChunks: Int = 0
@@ -103,7 +103,9 @@ public class AWDataTransferManager: NSObject, ObservableObject {
         qos: .userInitiated
     )
     private var pendingTransfers: [WCSessionFileTransfer] = []
-    private var chunkIDs: [Int: UUID] = [:]   // index → stable UUID
+    private var completedTransferIDs = Set<ObjectIdentifier>()
+    private var failedTransferMessages: [ObjectIdentifier: String] = [:]
+    private var chunkIDs: [Int: UUID] = [:]
     private var pollingTimer: Timer?
     private var completionHandler: ((Error?) -> Void)?
     private var tempFiles: [URL] = []
@@ -120,7 +122,7 @@ public class AWDataTransferManager: NSObject, ObservableObject {
     ///   - completion: Called on the main thread when all transfers finish (or fail).
     public func transferData(sensors: [AwareSensor], completion: ((Error?) -> Void)? = nil) {
         guard !state.isActive else {
-            if debug { print("[AWDataTransferManager] Already transferring — skipped.") }
+            if debug { print("[AWDataTransferManager] Already transferring; skipped.") }
             return
         }
         completionHandler = completion
@@ -135,9 +137,12 @@ public class AWDataTransferManager: NSObject, ObservableObject {
         stopPolling()
         for t in pendingTransfers { t.cancel() }
         pendingTransfers.removeAll()
+        completedTransferIDs.removeAll()
+        failedTransferMessages.removeAll()
         chunkIDs.removeAll()
         sensorTransferRecords.removeAll()
         cleanupTempFiles()
+        AWWCSessionManager.shared.fileTransferCompletionHandler = nil
         publish { [weak self] in
             self?.state = .idle
             self?.overallProgress = 0.0
@@ -156,6 +161,8 @@ public class AWDataTransferManager: NSObject, ObservableObject {
             self?.lastError = nil
         }
         pendingTransfers.removeAll()
+        completedTransferIDs.removeAll()
+        failedTransferMessages.removeAll()
         chunkIDs.removeAll()
         sensorTransferRecords.removeAll()
         tempFiles.removeAll()
@@ -190,7 +197,7 @@ public class AWDataTransferManager: NSObject, ObservableObject {
                 : -1
             let countFilter: String? = startId >= 0 ? "id > \(startId)" : nil
 
-            // COUNT first — no data loaded into memory
+            // Count first so rows are not loaded until pagination starts.
             let totalCount = engine.count(filter: countFilter)
             guard totalCount > 0 else {
                 if debug { print("[AWDataTransferManager] No records in '\(tableName)' (startId=\(startId))") }
@@ -204,9 +211,7 @@ public class AWDataTransferManager: NSObject, ObservableObject {
                 self.overallProgress = Double(sensorIndex) / Double(eligible.count) * 0.3
             }
 
-            // Paginate: fetch recordsPerChunk rows at a time using an ID cursor.
-            // Each batch is encoded, compressed, and written to disk before the next
-            // batch is fetched — keeping peak memory to one batch at a time.
+            // Keep peak memory bounded to one fetched page at a time.
             var lastId: Int64 = startId
             var batchIndex = 0
 
@@ -220,7 +225,7 @@ public class AWDataTransferManager: NSObject, ObservableObject {
                     let filter = lastId >= 0 ? "id > \(lastId)" : nil
                     guard let rawPage = engine.fetch(filter: filter, limit: recordsPerChunk),
                           !rawPage.isEmpty else {
-                        return   // shouldContinue stays false → breaks outer loop
+                        return
                     }
 
                     // Advance cursor to the highest id seen in this page
@@ -252,7 +257,7 @@ public class AWDataTransferManager: NSObject, ObservableObject {
                         shouldContinue = true
                         if debug {
                             let fmt = useColumnarFormat ? "col" : "row"
-                            print("[AWDataTransferManager][\(fmt)] \(fileName): \(jsonData.count / 1024) KB → \(compressed.count / 1024) KB")
+                            print("[AWDataTransferManager][\(fmt)] \(fileName): \(jsonData.count / 1024) KB -> \(compressed.count / 1024) KB")
                         }
                     } catch {
                         publish { [weak self] in self?.lastError = error.localizedDescription }
@@ -290,6 +295,9 @@ public class AWDataTransferManager: NSObject, ObservableObject {
 
             self.totalChunks = chunkFiles.count
             self.state = .transferring
+            AWWCSessionManager.shared.fileTransferCompletionHandler = { [weak self] fileTransfer, error in
+                self?.handleFileTransferCompletion(fileTransfer, error: error)
+            }
 
             var items: [AWTransferItem] = []
             for (index, chunk) in chunkFiles.enumerated() {
@@ -301,6 +309,8 @@ public class AWDataTransferManager: NSObject, ObservableObject {
                     "tableName":   chunk.tableName,
                     "chunkIndex":  chunk.chunkIndex,
                     "totalChunks": chunk.totalChunks,
+                    "globalChunkIndex": index + 1,
+                    "globalTotalChunks": chunkFiles.count,
                     "deviceId":    AwareUtils.getCommonDeviceId(),
                 ])
                 self.pendingTransfers.append(transfer)
@@ -345,8 +355,9 @@ public class AWDataTransferManager: NSObject, ObservableObject {
         var updatedItems: [AWTransferItem] = []
 
         for (index, transfer) in pendingTransfers.enumerated() {
+            let transferID = ObjectIdentifier(transfer)
             let fraction    = transfer.progress.fractionCompleted
-            let isFinished  = transfer.progress.isFinished
+            let isFinished  = completedTransferIDs.contains(transferID)
             let isCancelled = transfer.progress.isCancelled
             let isPaused    = transfer.progress.isPaused
 
@@ -372,13 +383,55 @@ public class AWDataTransferManager: NSObject, ObservableObject {
         overallProgress = 0.3 + transferFraction * 0.7
 
         if completedCount >= pendingTransfers.count {
-            stopPolling()
-            cleanupTempFiles()
-            handlePostTransfer()
-            state           = .completed
-            overallProgress = 1.0
-            completionHandler?(nil)
+            finishTransferIfNeeded()
         }
+    }
+
+    private func handleFileTransferCompletion(_ fileTransfer: WCSessionFileTransfer, error: Error?) {
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { [weak self] in
+                self?.handleFileTransferCompletion(fileTransfer, error: error)
+            }
+            return
+        }
+
+        guard state.isActive else { return }
+        let transferID = ObjectIdentifier(fileTransfer)
+        if let error {
+            failedTransferMessages[transferID] = error.localizedDescription
+            lastError = error.localizedDescription
+        }
+        completedTransferIDs.insert(transferID)
+        pollProgress()
+        finishTransferIfNeeded()
+    }
+
+    private func finishTransferIfNeeded() {
+        guard state.isActive,
+              !pendingTransfers.isEmpty,
+              completedTransferIDs.count >= pendingTransfers.count else {
+            return
+        }
+
+        stopPolling()
+        AWWCSessionManager.shared.fileTransferCompletionHandler = nil
+
+        if let message = failedTransferMessages.values.first {
+            cleanupTempFiles()
+            state = .failed(message: message)
+            completionHandler?(NSError(
+                domain: "AWDataTransferManager",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: message]
+            ))
+            return
+        }
+
+        cleanupTempFiles()
+        handlePostTransfer()
+        state = .completed
+        overallProgress = 1.0
+        completionHandler?(nil)
     }
 
     // MARK: - Helpers
@@ -465,9 +518,9 @@ public class AWDataTransferManager: NSObject, ObservableObject {
     /// {
     ///   "fmt": "col",
     ///   "count": 500,
-    ///   "deviceId": "xxx",          ← scalar (same in all rows)
+    ///   "deviceId": "xxx",          // scalar, same in all rows
     ///   "os": "watchOS",
-    ///   "timestamp": [1234, 1235, ...], ← vector
+    ///   "timestamp": [1234, 1235, ...], // vector
     ///   "accX":      [0.1,  0.3,  ...]
     /// }
     /// ```

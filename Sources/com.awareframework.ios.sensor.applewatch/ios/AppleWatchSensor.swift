@@ -17,6 +17,7 @@ public class AppleWatchSensor: AwareSensor {
     private var lastCommunicationMessageAt: Date?
     private var lastFileTransferAt: Date?
     private var lastCommunicationError: String?
+    private let receivedDataSaveQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch.received-data-save", qos: .utility)
     
     public class Config:SensorConfig{
 
@@ -26,6 +27,7 @@ public class AppleWatchSensor: AwareSensor {
         public var sensorObserver:AppleWatchObserver?
 
         public var keepOriginalFileFromWatch:Bool = false
+        public var autoSaveReceivedData:Bool = true
 
         // Watch sensor enable/disable flags
         public var watchMotionEnabled:Bool    = true
@@ -50,6 +52,19 @@ public class AppleWatchSensor: AwareSensor {
                                           _ totalChunks: Int,
                                           _ records: [[String: Any]]) -> Void)?
 
+        /// Called on the main thread as WatchConnectivity transfer files arrive
+        /// and are decoded on the iPhone.
+        ///
+        /// `chunkIndex` and `totalChunks` use the whole transfer session when
+        /// watchOS sends `globalChunkIndex/globalTotalChunks` metadata, and fall
+        /// back to the per-table chunk numbers otherwise.
+        public var fileTransferStatusHandler: ((_ tableName: String,
+                                                _ chunkIndex: Int,
+                                                _ totalChunks: Int,
+                                                _ fileName: String,
+                                                _ state: String,
+                                                _ errorMessage: String?) -> Void)?
+
         public override init() {
             super.init()
             dbPath = "aware_applewatch"
@@ -72,6 +87,7 @@ public class AppleWatchSensor: AwareSensor {
         super.init()
         CONFIG = config
         initializeDbEngine(config: config)
+        initializeReceivedDataTables()
         
         let subscribeNotificationNames = [
                 Notification.Name.actionAwareAppleWatchSyncCompletionMotion,
@@ -347,6 +363,18 @@ public class AppleWatchSensor: AwareSensor {
         return newFileUrl
     }
     
+    private func initializeReceivedDataTables() {
+        guard let queue = (dbEngine as? SQLiteEngine)?.getSQLiteInstance() else { return }
+        try? AWMotionSensorData.createTable(queue: queue)
+        try? AWBatterySensorData.createTable(queue: queue)
+        try? AWLocationSensorData.createTable(queue: queue)
+        try? AWHeadingSensorData.createTable(queue: queue)
+        try? AWBluetoothSensorData.createTable(queue: queue)
+        try? AWHealthKitSensorData.createTable(queue: queue)
+        try? AWDeviceSensorData.createTable(queue: queue)
+        AWAmbientNoiseData.createTable(queue: queue)
+        try? AWAudioLabelData.createTable(queue: queue)
+    }
 
     
     public func didReceive(file: WCSessionFile) {
@@ -370,11 +398,16 @@ public class AppleWatchSensor: AwareSensor {
             print("\(#function): \(fileName) received, metadata=\(file.metadata?.description ?? "nil")")
         }
 
-        // Route AWDataTransferManager files — by metadata type (primary) or
-        // by filename prefix (fallback when metadata is nil).
+        // AWDataTransferManager files can be identified by metadata or filename.
         let isAWTransfer = (file.metadata?["type"] as? String == "AWDataTransfer")
                         || fileName.hasPrefix("aw_")
         if isAWTransfer {
+            notifyFileTransferStatus(
+                metadata: file.metadata,
+                fileName: fileName,
+                state: "received",
+                errorMessage: nil
+            )
             handleAWDataTransferFile(newPath, metadata: file.metadata)
             return
         }
@@ -405,18 +438,31 @@ public class AppleWatchSensor: AwareSensor {
     /// Handles both row-oriented (`[[String:Any]]`) and columnar (`[String:Any]` with `"fmt":"col"`)
     /// payloads transparently.
     private func handleAWDataTransferFile(_ fileURL: URL, metadata: [String: Any]?) {
+        notifyFileTransferStatus(
+            metadata: metadata,
+            fileName: fileURL.lastPathComponent,
+            state: "processing",
+            errorMessage: nil
+        )
+
         do {
             let compressed = try Data(contentsOf: fileURL)
             guard let decompressed = compressed.decompress(withAlgorithm: .zlib) else {
                 if CONFIG.debug {
                     print("\(#function): decompression failed for \(fileURL.lastPathComponent)")
                 }
+                notifyFileTransferStatus(
+                    metadata: metadata,
+                    fileName: fileURL.lastPathComponent,
+                    state: "failed",
+                    errorMessage: "Decompression failed"
+                )
                 return
             }
 
             let json = try JSONSerialization.jsonObject(with: decompressed)
 
-            // Detect format: columnar dict vs legacy row array
+            // Detect columnar payloads and legacy row arrays.
             let records: [[String: Any]]
             if let columnar = json as? [String: Any],
                columnar["fmt"] as? String == "col" {
@@ -427,18 +473,17 @@ public class AppleWatchSensor: AwareSensor {
                 if CONFIG.debug {
                     print("\(#function): unrecognised JSON shape for \(fileURL.lastPathComponent)")
                 }
+                notifyFileTransferStatus(
+                    metadata: metadata,
+                    fileName: fileURL.lastPathComponent,
+                    state: "failed",
+                    errorMessage: "Unrecognised JSON shape"
+                )
                 return
             }
 
-            // tableName falls back to parsing the filename when metadata is absent.
-            let tableName = metadata?["tableName"] as? String
-                ?? fileURL.lastPathComponent
-                    .components(separatedBy: "_")
-                    .dropFirst()        // drop "aw"
-                    .prefix(1)
-                    .first ?? "unknown"
+            let tableName = tableName(from: metadata, fileName: fileURL.lastPathComponent)
 
-            // WatchConnectivity delivers plist numbers; accept Int or Int64.
             let chunkIndex  = int(from: metadata?["chunkIndex"])  ?? 1
             let totalChunks = int(from: metadata?["totalChunks"]) ?? 1
 
@@ -448,12 +493,125 @@ public class AppleWatchSensor: AwareSensor {
                 self?.CONFIG.receivedDataHandler?(tableName, chunkIndex, totalChunks, records)
             }
 
+            notifyFileTransferStatus(
+                metadata: metadata,
+                fileName: fileURL.lastPathComponent,
+                state: "decoded",
+                errorMessage: nil
+            )
+
+            if CONFIG.autoSaveReceivedData {
+                saveReceivedRecords(
+                    records,
+                    tableName: tableName,
+                    metadata: metadata,
+                    fileName: fileURL.lastPathComponent
+                )
+            }
+
             if !CONFIG.keepOriginalFileFromWatch {
                 try? FileManager.default.removeItem(at: fileURL)
             }
         } catch {
             lastCommunicationError = error.localizedDescription
+            notifyFileTransferStatus(
+                metadata: metadata,
+                fileName: fileURL.lastPathComponent,
+                state: "failed",
+                errorMessage: error.localizedDescription
+            )
             if CONFIG.debug { print("\(#function): \(error)") }
+        }
+    }
+
+    private func saveReceivedRecords(
+        _ records: [[String: Any]],
+        tableName: String,
+        metadata: [String: Any]?,
+        fileName: String
+    ) {
+        guard !records.isEmpty else {
+            notifyFileTransferStatus(
+                metadata: metadata,
+                fileName: fileName,
+                state: "saved",
+                errorMessage: nil
+            )
+            return
+        }
+
+        guard let models = watchModels(tableName: tableName, records: records) else {
+            notifyFileTransferStatus(
+                metadata: metadata,
+                fileName: fileName,
+                state: "save_failed",
+                errorMessage: "Unsupported table: \(tableName)"
+            )
+            return
+        }
+
+        guard let dbEngine else {
+            notifyFileTransferStatus(
+                metadata: metadata,
+                fileName: fileName,
+                state: "save_failed",
+                errorMessage: "Database engine is not available"
+            )
+            return
+        }
+
+        notifyFileTransferStatus(
+            metadata: metadata,
+            fileName: fileName,
+            state: "saving",
+            errorMessage: nil
+        )
+
+        receivedDataSaveQueue.async { [weak self] in
+            dbEngine.save(models) { error in
+                if let error {
+                    self?.lastCommunicationError = error.localizedDescription
+                    self?.notifyFileTransferStatus(
+                        metadata: metadata,
+                        fileName: fileName,
+                        state: "save_failed",
+                        errorMessage: error.localizedDescription
+                    )
+                } else {
+                    self?.notifyFileTransferStatus(
+                        metadata: metadata,
+                        fileName: fileName,
+                        state: "saved",
+                        errorMessage: nil
+                    )
+                }
+            }
+        }
+    }
+
+    private func notifyFileTransferStatus(
+        metadata: [String: Any]?,
+        fileName: String,
+        state: String,
+        errorMessage: String?
+    ) {
+        let tableName = tableName(from: metadata, fileName: fileName)
+        let chunkIndex = int(from: metadata?["globalChunkIndex"])
+            ?? int(from: metadata?["chunkIndex"])
+            ?? 1
+        let totalChunks = int(from: metadata?["globalTotalChunks"])
+            ?? int(from: metadata?["totalChunks"])
+            ?? 1
+
+        DispatchQueue.main.async { [weak self] in
+            self?.CONFIG.fileTransferStatusHandler?(
+                tableName,
+                chunkIndex,
+                totalChunks,
+                fileName,
+                state,
+                errorMessage
+            )
         }
     }
 
@@ -463,6 +621,76 @@ public class AppleWatchSensor: AwareSensor {
         if let v = value as? Int64  { return Int(v) }
         if let v = value as? NSNumber { return v.intValue }
         return nil
+    }
+
+    private func tableName(from metadata: [String: Any]?, fileName: String) -> String {
+        if let tableName = metadata?["tableName"] as? String, !tableName.isEmpty {
+            return tableName
+        }
+
+        for tableName in Self.knownWatchTableNames {
+            if fileName.hasPrefix("aw_\(tableName)_") || fileName == "\(tableName).zlib" {
+                return tableName
+            }
+        }
+
+        let components = fileName.components(separatedBy: "_")
+        if components.count >= 3, components[0] == "aw", components[1] == "watch" {
+            return "watch_\(components[2])"
+        }
+
+        return "unknown"
+    }
+
+    private static let knownWatchTableNames = [
+        AWMotionSensorData.databaseTableName,
+        AWBatterySensorData.databaseTableName,
+        AWLocationSensorData.databaseTableName,
+        AWHeadingSensorData.databaseTableName,
+        AWBluetoothSensorData.databaseTableName,
+        AWHealthKitSensorData.databaseTableName,
+        AWDeviceSensorData.databaseTableName,
+        AWAmbientNoiseData.databaseTableName,
+        AWAudioLabelData.databaseTableName,
+    ]
+
+    private func watchModels(
+        tableName: String,
+        records: [[String: Any]]
+    ) -> [any BaseDbModelSQLite]? {
+        let normalizedRecords = records.map(normalizedRecord)
+
+        switch tableName {
+        case AWMotionSensorData.databaseTableName:
+            return normalizedRecords.map { AWMotionSensorData($0) as any BaseDbModelSQLite }
+        case AWBatterySensorData.databaseTableName:
+            return normalizedRecords.map { AWBatterySensorData($0) as any BaseDbModelSQLite }
+        case AWLocationSensorData.databaseTableName:
+            return normalizedRecords.map { AWLocationSensorData($0) as any BaseDbModelSQLite }
+        case AWHeadingSensorData.databaseTableName:
+            return normalizedRecords.map { AWHeadingSensorData($0) as any BaseDbModelSQLite }
+        case AWBluetoothSensorData.databaseTableName:
+            return normalizedRecords.map { AWBluetoothSensorData($0) as any BaseDbModelSQLite }
+        case AWHealthKitSensorData.databaseTableName:
+            return normalizedRecords.map { AWHealthKitSensorData($0) as any BaseDbModelSQLite }
+        case AWDeviceSensorData.databaseTableName:
+            return normalizedRecords.map { AWDeviceSensorData($0) as any BaseDbModelSQLite }
+        case AWAmbientNoiseData.databaseTableName:
+            return normalizedRecords.map { AWAmbientNoiseData($0) as any BaseDbModelSQLite }
+        case AWAudioLabelData.databaseTableName:
+            return normalizedRecords.map { AWAudioLabelData($0) as any BaseDbModelSQLite }
+        default:
+            return nil
+        }
+    }
+
+    private func normalizedRecord(_ record: [String: Any]) -> [String: Any] {
+        record.mapValues { value in
+            guard let number = value as? NSNumber else { return value }
+            let doubleValue = number.doubleValue
+            let int64Value = number.int64Value
+            return doubleValue == Double(int64Value) ? int64Value : doubleValue
+        }
     }
 
     /// Expands a columnar payload back to `[[String: Any]]`.

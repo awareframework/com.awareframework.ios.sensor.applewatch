@@ -28,6 +28,8 @@ public class AWWCSessionManager: NSObject, WCSessionDelegate{
     /// WatchConnectivity メッセージを受信したときに呼ばれるハンドラー。
     /// 外部センサー（AWUWBSensor 等）がトークン交換などを行うために使用する。
     public var messageHandler: ((_ message: [String: Any]) -> Void)?
+    public var fileTransferCompletionHandler: ((_ fileTransfer: WCSessionFileTransfer,
+                                                _ error: Error?) -> Void)?
 
     public var DEBUG = true
     private var lastMessageAt: Date?
@@ -45,16 +47,16 @@ public class AWWCSessionManager: NSObject, WCSessionDelegate{
     /// Fetch settings from the paired iPhone and apply them to `AWSensorManager`.
     ///
     /// Fields applied automatically to every sensor registered in `AWSensorManager.shared`:
-    /// - `db_host` → `dbEngine.config.host`
-    /// - `label`   → `SensorConfig.label` (via `set(label:)`)
-    /// - `debug`   → `SensorConfig.debug`
+    /// - `db_host`: `dbEngine.config.host`
+    /// - `label`: `SensorConfig.label` via `set(label:)`
+    /// - `debug`: `SensorConfig.debug`
     ///
     /// Fields available in the returned dictionary for caller use:
-    /// - `motion_sensor_hz` — motion sensor sampling rate
-    /// - `file_transfer_interval_seconds` — Watch→iPhone transfer interval
+    /// - `motion_sensor_hz`: motion sensor sampling rate
+    /// - `file_transfer_interval_seconds`: Watch to iPhone transfer interval
     /// - `watch_motion_enabled`, `watch_battery_enabled`, `watch_device_enabled`,
     ///   `watch_healthkit_enabled`, `watch_location_enabled`, `watch_audio_enabled`,
-    ///   `watch_uwb_enabled`, `watch_bluetooth_enabled` — sensor on/off flags
+    ///   `watch_uwb_enabled`, `watch_bluetooth_enabled`: sensor on/off flags
     ///   (apply these manually; only the caller knows which sensor instances to start/stop)
     public func applyiPhoneSettings(completion: (([String: Any]) -> Void)? = nil) {
         getSettings { settings in
@@ -161,6 +163,7 @@ public class AWWCSessionManager: NSObject, WCSessionDelegate{
     public func session(_ session: WCSession,
                         didFinish fileTransfer: WCSessionFileTransfer,
                         error: Error?) {
+        fileTransferCompletionHandler?(fileTransfer, error)
         
         if let e = error {
             lastError = e.localizedDescription
