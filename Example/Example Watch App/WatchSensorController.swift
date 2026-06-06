@@ -5,15 +5,44 @@ import WatchConnectivity
 import com_awareframework_ios_core
 import com_awareframework_ios_sensor_applewatch_watchOS
 
+// [Change 1] Keys for persisting recording state and sensor toggles in UserDefaults
+//   isRunning: recording on/off state
+//   motion-audio: enabled/disabled state of each sensor
+private enum UDKey {
+    static let isRunning      = "watch_example_isRunning"
+    static let motion         = "watch_example_motionEnabled"
+    static let battery        = "watch_example_batteryEnabled"
+    static let device         = "watch_example_deviceEnabled"
+    static let healthKit      = "watch_example_healthKitEnabled"
+    static let location       = "watch_example_locationEnabled"
+    static let audio          = "watch_example_audioEnabled"
+}
+
 @MainActor
 final class WatchSensorController: NSObject, ObservableObject {
-    @Published var isRunning = false
-    @Published var motionEnabled = true
-    @Published var batteryEnabled = true
-    @Published var deviceEnabled = true
-    @Published var healthKitEnabled = true
-    @Published var locationEnabled = false
-    @Published var audioEnabled = false
+    // [Change 2] Persist each property to UserDefaults via didSet
+    //   State is saved immediately on every change and survives app termination
+    @Published var isRunning: Bool {
+        didSet { UserDefaults.standard.set(isRunning, forKey: UDKey.isRunning) }
+    }
+    @Published var motionEnabled: Bool {
+        didSet { UserDefaults.standard.set(motionEnabled, forKey: UDKey.motion) }
+    }
+    @Published var batteryEnabled: Bool {
+        didSet { UserDefaults.standard.set(batteryEnabled, forKey: UDKey.battery) }
+    }
+    @Published var deviceEnabled: Bool {
+        didSet { UserDefaults.standard.set(deviceEnabled, forKey: UDKey.device) }
+    }
+    @Published var healthKitEnabled: Bool {
+        didSet { UserDefaults.standard.set(healthKitEnabled, forKey: UDKey.healthKit) }
+    }
+    @Published var locationEnabled: Bool {
+        didSet { UserDefaults.standard.set(locationEnabled, forKey: UDKey.location) }
+    }
+    @Published var audioEnabled: Bool {
+        didSet { UserDefaults.standard.set(audioEnabled, forKey: UDKey.audio) }
+    }
     @Published var isPhoneReachable = false
     @Published var statusMessage = "Ready"
 
@@ -39,7 +68,8 @@ final class WatchSensorController: NSObject, ObservableObject {
         }
     })
 
-    private lazy var healthKit = AWHealthKitSensor(AWHealthKitSensor.Config().apply { config in
+    // [Change 5] Renamed AWHealthKitSensor → AWHeartRateSensor to follow library-side class rename
+    private lazy var healthKit = AWHeartRateSensor(AWHeartRateSensor.Config().apply { config in
         config.debug = true
     })
 
@@ -58,9 +88,27 @@ final class WatchSensorController: NSObject, ObservableObject {
         selectedSensors().count
     }
 
+    // [Change 3] Restore previous state from UserDefaults on init
+    //   On first launch, bool(forKey:) returns false, so all sensors and recording default to off
+    override init() {
+        let ud = UserDefaults.standard
+        isRunning      = ud.bool(forKey: UDKey.isRunning)
+        motionEnabled  = ud.bool(forKey: UDKey.motion)
+        batteryEnabled = ud.bool(forKey: UDKey.battery)
+        deviceEnabled  = ud.bool(forKey: UDKey.device)
+        healthKitEnabled = ud.bool(forKey: UDKey.healthKit)
+        locationEnabled  = ud.bool(forKey: UDKey.location)
+        audioEnabled     = ud.bool(forKey: UDKey.audio)
+        super.init()
+    }
+
+    // [Change 4] Auto-resume sensors on app launch if recording was active last session
     func activate() {
         _ = AWWCSessionManager.shared
         updateReachability()
+        if isRunning {
+            start()
+        }
     }
 
     func applyiPhoneSettings() {
@@ -135,12 +183,12 @@ final class WatchSensorController: NSObject, ObservableObject {
 
     private func selectedSensors() -> [AwareSensor] {
         var sensors: [AwareSensor] = []
-        if motionEnabled { sensors.append(motion) }
+        if motionEnabled  { sensors.append(motion) }
         if batteryEnabled { sensors.append(battery) }
-        if deviceEnabled { sensors.append(device) }
+        if deviceEnabled  { sensors.append(device) }
         if healthKitEnabled { sensors.append(healthKit) }
-        if locationEnabled { sensors.append(location) }
-        if audioEnabled { sensors.append(audio) }
+        if locationEnabled  { sensors.append(location) }
+        if audioEnabled     { sensors.append(audio) }
         return sensors
     }
 
