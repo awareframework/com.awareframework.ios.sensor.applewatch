@@ -370,7 +370,7 @@ public class AppleWatchSensor: AwareSensor {
         try? AWLocationSensorData.createTable(queue: queue)
         try? AWHeadingSensorData.createTable(queue: queue)
         try? AWBluetoothSensorData.createTable(queue: queue)
-        try? AWHealthKitSensorData.createTable(queue: queue)
+        try? AWHeartRateSensorData.createTable(queue: queue)
         try? AWDeviceSensorData.createTable(queue: queue)
         AWAmbientNoiseData.createTable(queue: queue)
         try? AWAudioLabelData.createTable(queue: queue)
@@ -648,7 +648,7 @@ public class AppleWatchSensor: AwareSensor {
         AWLocationSensorData.databaseTableName,
         AWHeadingSensorData.databaseTableName,
         AWBluetoothSensorData.databaseTableName,
-        AWHealthKitSensorData.databaseTableName,
+        AWHeartRateSensorData.databaseTableName,
         AWDeviceSensorData.databaseTableName,
         AWAmbientNoiseData.databaseTableName,
         AWAudioLabelData.databaseTableName,
@@ -671,8 +671,8 @@ public class AppleWatchSensor: AwareSensor {
             return normalizedRecords.map { AWHeadingSensorData($0) as any BaseDbModelSQLite }
         case AWBluetoothSensorData.databaseTableName:
             return normalizedRecords.map { AWBluetoothSensorData($0) as any BaseDbModelSQLite }
-        case AWHealthKitSensorData.databaseTableName:
-            return normalizedRecords.map { AWHealthKitSensorData($0) as any BaseDbModelSQLite }
+        case AWHeartRateSensorData.databaseTableName:
+            return normalizedRecords.map { AWHeartRateSensorData($0) as any BaseDbModelSQLite }
         case AWDeviceSensorData.databaseTableName:
             return normalizedRecords.map { AWDeviceSensorData($0) as any BaseDbModelSQLite }
         case AWAmbientNoiseData.databaseTableName:

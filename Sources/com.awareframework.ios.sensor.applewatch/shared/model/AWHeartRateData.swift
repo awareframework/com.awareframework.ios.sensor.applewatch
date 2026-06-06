@@ -1,5 +1,5 @@
 //
-//  AWHealthkitData.swift
+//  AWHeartRateData.swift
 //  com.awareframework.ios.sensor.applewatch
 //
 //  Created by Yuuki Nishiyama on 2025/07/08.
@@ -8,7 +8,7 @@
 import com_awareframework_ios_core
 import GRDB
 
-public struct AWHealthKitSensorData:BaseDbModelSQLite {
+public struct AWHeartRateSensorData: BaseDbModelSQLite {
     
     public var timezone: Int = AwareUtils.getTimeZone()
     public var os: String = "watchOS"
@@ -19,7 +19,7 @@ public struct AWHealthKitSensorData:BaseDbModelSQLite {
     public var deviceId: String = AwareUtils.getCommonDeviceId()
     public var label: String
 
-    public static let databaseTableName = "watch_healthkit"  // 新しいテーブル名
+    public static let databaseTableName = "watch_heartrate"
 
     public var hr:Double = 0.0
     
@@ -48,7 +48,7 @@ public struct AWHealthKitSensorData:BaseDbModelSQLite {
 
     public static func createTable(queue: GRDB.DatabaseQueue) throws {
         try queue.write { db in
-            try db.create(table: AWHealthKitSensorData.databaseTableName, ifNotExists: true) { t in
+            try db.create(table: AWHeartRateSensorData.databaseTableName, ifNotExists: true) { t in
                 t.autoIncrementedPrimaryKey("id")
                 t.column("timestamp", .integer).notNull()
                 t.column("deviceId", .text).notNull()

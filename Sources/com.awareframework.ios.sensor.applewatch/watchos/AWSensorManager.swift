@@ -156,7 +156,7 @@ extension AWSensorManager {
             #if os(iOS)
 
             #elseif os(watchOS)
-            if let hrSensor = s as? AWHealthKitSensor {
+            if let hrSensor = s as? AWHeartRateSensor {
                 hrSensor.initHealthKit { success, error in
                     completion(success, error)
                 }

@@ -23,13 +23,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let locationSensor = LocationsSensor(LocationsSensor.Config().apply{config in
             config.sensorObserver = Observer()
             config.debug = true
-            config.dbType = DatabaseType.REALM
             // more configuration...
         })
-        
+
         let appleWatch = AppleWatchSensor(AppleWatchSensor.Config().apply{config in
             config.debug = true
-            config.dbType = .REALM
             config.keepOriginalFileFromWatch = true
         })
         

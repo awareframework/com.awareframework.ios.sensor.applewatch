@@ -1,5 +1,5 @@
 //
-//  AWHealthKitSensor.swift
+//  AWHeartRateSensor.swift
 //  com.awareframework.ios.sensor.applewatch-watchOS
 //
 //  Created by Yuuki Nishiyama on 2022/12/20.
@@ -19,9 +19,9 @@ import com_awareframework_ios_core
 import com_awareframework_ios_sensor_applewatch_shared
 
 
-public class AWHealthKitSensor: AwareSensor, ObservableObject {
+public class AWHeartRateSensor: AwareSensor, ObservableObject {
     
-    @Published var sensorData:AWHealthKitSensorData?
+    @Published var sensorData:AWHeartRateSensorData?
 
     let healthStore = HKHealthStore()
     let heartRateUnit = HKUnit(from: "count/min")
@@ -34,26 +34,26 @@ public class AWHealthKitSensor: AwareSensor, ObservableObject {
 
     let TAG = "AWARE::AppleWatch:healthkit"
     
-    public var CONFIG = AWHealthKitSensor.Config()
+    public var CONFIG = AWHeartRateSensor.Config()
     public class Config:SensorConfig {
         public override init(){
             super.init()
-            self.dbTableName = AWHealthKitSensorData.databaseTableName
-            self.dbPath = AWHeadingSensorData.databaseTableName
+            self.dbTableName = AWHeartRateSensorData.databaseTableName
+            self.dbPath = AWHeartRateSensorData.databaseTableName
         }
         
         public override func set(config: Dictionary<String, Any>) {
             super.set(config: config)
         }
         
-        public func apply(closure: (_ config: AWHealthKitSensor.Config ) -> Void) -> Self {
+        public func apply(closure: (_ config: AWHeartRateSensor.Config ) -> Void) -> Self {
             closure(self)
             return self
         }
     }
     
     
-    public init(_ config:AWHealthKitSensor.Config) {
+    public init(_ config:AWHeartRateSensor.Config) {
         super.init()
         self.CONFIG = config
         self.initializeDbEngine(config: config)
@@ -67,7 +67,7 @@ public class AWHealthKitSensor: AwareSensor, ObservableObject {
         if let sqliteEngine = self.dbEngine as? SQLiteEngine {
             if let queue = sqliteEngine.getSQLiteInstance() {
                 do {
-                    try AWHealthKitSensorData.createTable(queue: queue)
+                    try AWHeartRateSensorData.createTable(queue: queue)
                 }catch {
                     if (CONFIG.debug) { print(#function, error) }
                 }
@@ -140,7 +140,7 @@ public class AWHealthKitSensor: AwareSensor, ObservableObject {
             let now = Date()
             let hr = sample.quantity.doubleValue(for: self.heartRateUnit)
             
-            let data = AWHealthKitSensorData(timestamp: Int64(now.timeIntervalSince1970 * 1000) ,
+            let data = AWHeartRateSensorData(timestamp: Int64(now.timeIntervalSince1970 * 1000) ,
                                              hr: hr,
                                              label: self.CONFIG.label)
             self.dbEngine?.save([data])

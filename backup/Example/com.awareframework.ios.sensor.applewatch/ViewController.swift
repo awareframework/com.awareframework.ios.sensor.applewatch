@@ -10,7 +10,6 @@ import UIKit
 import WatchConnectivity
 import com_awareframework_ios_sensor_core
 import com_awareframework_ios_sensor_applewatch
-import RealmSwift
 
 class ViewController: UIViewController {
 
@@ -49,12 +48,7 @@ class ViewController: UIViewController {
         for sensor in SensorManager.shared.sensors {
             if let appleWatchSensor = sensor as? AppleWatchSensor {
                 appleWatchSensor.CONFIG.sensorObserver = self
-                
-//                let engine = appleWatchSensor.dbEngine as! RealmEngine
-//                if let realm = engine.getRealmInstance() {
-//                    let count = realm.objects(AppleWatchMotionData.self).count
-//                    print(count)
-//                }
+
             }
         }
 
