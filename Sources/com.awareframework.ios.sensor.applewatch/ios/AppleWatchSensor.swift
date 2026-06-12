@@ -35,6 +35,7 @@ public class AppleWatchSensor: AwareSensor {
         public var watchDeviceEnabled:Bool    = true
         public var watchHealthKitEnabled:Bool = true
         public var watchLocationEnabled:Bool  = false
+        public var watchHeadingEnabled:Bool   = false
         public var watchAudioEnabled:Bool     = false
         public var watchUWBEnabled:Bool       = false
         public var watchBluetoothEnabled:Bool = false
@@ -43,7 +44,7 @@ public class AppleWatchSensor: AwareSensor {
         /// (watchOS) is received and decompressed successfully.
         ///
         /// - Parameters:
-        ///   - tableName:   The SQLite table the records originate from (e.g. `"watch_motion"`).
+        ///   - tableName:   The SQLite table the records originate from (e.g. `"ios_watch_motion"`).
         ///   - chunkIndex:  1-based index of this chunk within the transfer batch.
         ///   - totalChunks: Total number of chunks in the batch for this table.
         ///   - records:     Decoded JSON rows as `[[String: Any]]`.
@@ -67,7 +68,7 @@ public class AppleWatchSensor: AwareSensor {
 
         public override init() {
             super.init()
-            dbPath = "aware_applewatch"
+            dbPath = "aware_apple_watch"
         }
         
         public override func set(config: Dictionary<String, Any>) {
@@ -87,6 +88,13 @@ public class AppleWatchSensor: AwareSensor {
         super.init()
         CONFIG = config
         initializeDbEngine(config: config)
+        super.syncConfig = DbSyncConfig().apply { syncConfig in
+            syncConfig.serverType = config.serverType
+            syncConfig.studyNumber = config.studyNumber
+            syncConfig.studyKey = config.studyKey
+            syncConfig.debug = config.debug
+            syncConfig.batchSize = 1000
+        }
         initializeReceivedDataTables()
         
         let subscribeNotificationNames = [
@@ -121,131 +129,108 @@ public class AppleWatchSensor: AwareSensor {
     }
     
     public override func sync(force: Bool = false) {
-        if let engine = self.dbEngine {
-            
-            syncProgress = WatchSyncProgress()
-            
-            self.notificationCenter.post(name: .actionAwareAppleWatchSync , object: self)
-            
-//            // AppleWatchAcclerometer
-//            engine.startSync(AppleWatchMotionData.TABLE_NAME ,
-//                             AppleWatchMotionData.self,
-//                             DbSyncConfig().apply{config in
-//                config.debug = self.CONFIG.debug
-//                config.compactDataFormat = true
-//                config.batchSize = 1000
-//                config.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch_motion.sync.queue")
-//                config.progressHandler = { (status, error) in
-//                    var userInfo: Dictionary<String,Any> = [AppleWatchSensor.EXTRA_STATUS :status]
-//                    if let e = error {
-//                        userInfo[AppleWatchSensor.EXTRA_ERROR] = e
-//                    }
-//                    self.notificationCenter.post(name: .actionAwareAppleWatchSyncCompletionMotion,
-//                                                 object: self,
-//                                                 userInfo:userInfo)
-//                }
-//            })
-//            
-//            engine.startSync(AppleWatchAudioData.TABLE_NAME,
-//                             AppleWatchAudioData.self,
-//                             DbSyncConfig().apply{ config in
-//                config.debug = self.CONFIG.debug
-//                config.compactDataFormat = true
-//                config.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch_noise.sync.queue")
-//                config.progressHandler = {(status, error) in
-//                    var userInfo: Dictionary<String,Any> = [AppleWatchSensor.EXTRA_STATUS: status]
-//                    if let e = error {
-//                        userInfo[AppleWatchSensor.EXTRA_ERROR] = e
-//                    }
-//                    self.notificationCenter.post(name: .actionAwareAppleWatchSyncCompletionNoise,
-//                                                 object: self,
-//                                                 userInfo: userInfo)
-//                }
-//            })
-//            
-//            engine.startSync(AppleWatchAudioClassifierData.TABLE_NAME, AppleWatchAudioClassifierData.self, DbSyncConfig().apply {config in
-//                config.debug = self.CONFIG.debug
-//                config.compactDataFormat = true
-//                config.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch_audioclass.sync.queue")
-//                config.progressHandler = {(status, error) in
-//                    var userInfo: Dictionary<String, Any> = [AppleWatchSensor.EXTRA_STATUS: status]
-//                    if let e = error {
-//                        userInfo[AppleWatchSensor.EXTRA_ERROR] = e
-//                    }
-//                    self.notificationCenter.post(name: .actionAwareAppleWatchSyncCompletionAudioClass,
-//                                                 object: self,
-//                                                 userInfo: userInfo)
-//                }
-//            })
-//            
-//            engine.startSync(AppleWatchHeartRateData.TABLE_NAME, AppleWatchHeartRateData.self, DbSyncConfig().apply {config in
-//            
-//                config.debug = self.CONFIG.debug
-//                config.compactDataFormat = true
-//                config.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch_hr.sync.queue")
-//                config.progressHandler = {(status, error) in
-//                    var userInfo: Dictionary<String, Any> = [AppleWatchSensor.EXTRA_STATUS: status]
-//                    if let e = error {
-//                        userInfo[AppleWatchSensor.EXTRA_ERROR] = e
-//                    }
-//                    self.notificationCenter.post(name: .actionAwareAppleWatchSyncCompletionHR, object: self, userInfo: userInfo)
-//                }
-//            })
-//            
-//            engine.startSync(AppleWatchLocationData.TABLE_NAME, AppleWatchLocationData.self, DbSyncConfig().apply {config in
-//            
-//                config.debug = self.CONFIG.debug
-//                config.compactDataFormat = true
-//                config.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch_location.sync.queue")
-//                config.progressHandler = {(status, error) in
-//                    var userInfo: Dictionary<String, Any> = [AppleWatchSensor.EXTRA_STATUS: status]
-//                    if let e = error {
-//                        userInfo[AppleWatchSensor.EXTRA_ERROR] = e
-//                    }
-//                    self.notificationCenter.post(name: .actionAwareAppleWatchSyncCompletionLocation, object: self, userInfo: userInfo)
-//                }
-//            })
-//            
-//            engine.startSync(AppleWatchHeadingData.TABLE_NAME, AppleWatchHeadingData.self, DbSyncConfig().apply {config in
-//            
-//                config.debug = self.CONFIG.debug
-//                config.compactDataFormat = true
-//                config.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch_heading.sync.queue")
-//                config.progressHandler = {(status, error) in
-//                    var userInfo: Dictionary<String, Any> = [AppleWatchSensor.EXTRA_STATUS: status]
-//                    if let e = error {
-//                        userInfo[AppleWatchSensor.EXTRA_ERROR] = e
-//                    }
-//                    self.notificationCenter.post(name: .actionAwareAppleWatchSyncCompletionHeading, object: self, userInfo: userInfo)
-//                }
-//            })
-//            
-//            engine.startSync(AppleWatchBatteryData.TABLE_NAME, AppleWatchBatteryData.self, DbSyncConfig().apply {config in
-//                config.debug = self.CONFIG.debug
-//                config.compactDataFormat = true
-//                config.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch_battery.sync.queue")
-//                config.progressHandler = {(status, error) in
-//                    var userInfo: Dictionary<String, Any> = [AppleWatchSensor.EXTRA_STATUS: status]
-//                    if let e = error {
-//                        userInfo[AppleWatchSensor.EXTRA_ERROR] = e
-//                    }
-//                    self.notificationCenter.post(name: .actionAwareAppleWatchSyncCompletionBattery, object: self, userInfo: userInfo)
-//                }
-//            })
-//            
-//            engine.startSync(AppleWatchBluetoothData.TABLE_NAME, AppleWatchBluetoothData.self, DbSyncConfig().apply {config in
-//                config.debug = self.CONFIG.debug
-//                config.compactDataFormat = true
-//                config.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch_bluetooth.sync.queue")
-//                config.progressHandler = {(status, error) in
-//                    var userInfo: Dictionary<String, Any> = [AppleWatchSensor.EXTRA_STATUS: status]
-//                    if let e = error {
-//                        userInfo[AppleWatchSensor.EXTRA_ERROR] = e
-//                    }
-//                    self.notificationCenter.post(name: .actionAwareAppleWatchSyncCompletionBluetooth, object: self, userInfo: userInfo)
-//                }
-//            })
+        syncProgress = WatchSyncProgress()
+        notificationCenter.post(name: .actionAwareAppleWatchSync, object: self)
+
+        guard let syncConfig else {
+            notificationCenter.post(
+                name: .actionAwareAppleWatchSyncCompletion,
+                object: self,
+                userInfo: [
+                    AppleWatchSensor.EXTRA_STATUS: false,
+                    AppleWatchSensor.EXTRA_ERROR: "Sync config is not available",
+                ]
+            )
+            return
         }
+
+        startSequentialSync(
+            for: Self.knownWatchTableNames,
+            syncConfig: syncConfig,
+            currentIndex: 0,
+            hasFailure: false,
+            lastError: nil
+        )
+    }
+
+    private func makeSyncConfig(
+        from baseConfig: DbSyncConfig,
+        tableIndex: Int,
+        tableCount: Int,
+        completionHandler: DbSyncCompletionHandler?
+    ) -> DbSyncConfig {
+        let syncConfig = DbSyncConfig()
+        syncConfig.removeAfterSync = baseConfig.removeAfterSync
+        syncConfig.batchSize = baseConfig.batchSize
+        syncConfig.markAsSynced = baseConfig.markAsSynced
+        syncConfig.skipSyncedData = baseConfig.skipSyncedData
+        syncConfig.keepLastData = baseConfig.keepLastData
+        syncConfig.deviceId = baseConfig.deviceId
+        syncConfig.debug = baseConfig.debug
+        syncConfig.debugLevel = baseConfig.debugLevel
+        syncConfig.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch.sync.queue.\(tableIndex)")
+        syncConfig.backgroundSession = baseConfig.backgroundSession
+        syncConfig.compactDataFormat = baseConfig.compactDataFormat
+        syncConfig.serverType = baseConfig.serverType
+        syncConfig.studyNumber = baseConfig.studyNumber
+        syncConfig.studyKey = baseConfig.studyKey
+        syncConfig.test = baseConfig.test
+        syncConfig.progressHandler = { progress, error in
+            let tableWeight = 1.0 / Double(max(tableCount, 1))
+            let overallProgress = (Double(tableIndex) * tableWeight) + (progress * tableWeight)
+            baseConfig.progressHandler?(min(1.0, max(0.0, overallProgress)), error)
+        }
+        syncConfig.completionHandler = completionHandler
+        return syncConfig
+    }
+
+    private func makeSyncEngine(for tableName: String) -> Engine {
+        Engine.Builder()
+            .setPath(CONFIG.dbPath)
+            .setType(CONFIG.dbType)
+            .setHost(CONFIG.dbHost)
+            .setEncryptionKey(CONFIG.dbEncryptionKey)
+            .setTableName(tableName)
+            .build()
+    }
+
+    private func startSequentialSync(
+        for tables: [String],
+        syncConfig: DbSyncConfig,
+        currentIndex: Int,
+        hasFailure: Bool,
+        lastError: Error?
+    ) {
+        guard currentIndex < tables.count else {
+            var userInfo: [String: Any] = [AppleWatchSensor.EXTRA_STATUS: hasFailure == false]
+            if let lastError {
+                userInfo[AppleWatchSensor.EXTRA_ERROR] = lastError
+            }
+            notificationCenter.post(
+                name: .actionAwareAppleWatchSyncCompletion,
+                object: self,
+                userInfo: userInfo
+            )
+            return
+        }
+
+        let tableName = tables[currentIndex]
+        let engine = makeSyncEngine(for: tableName)
+        let perTableConfig = makeSyncConfig(
+            from: syncConfig,
+            tableIndex: currentIndex,
+            tableCount: tables.count
+        ) { [weak self] status, error in
+            guard let self else { return }
+            self.startSequentialSync(
+                for: tables,
+                syncConfig: syncConfig,
+                currentIndex: currentIndex + 1,
+                hasFailure: hasFailure || status == false,
+                lastError: error ?? lastError
+            )
+        }
+        engine.startSync(perTableConfig)
     }
     
     private class WatchSyncProgress {
@@ -625,7 +610,7 @@ public class AppleWatchSensor: AwareSensor {
 
     private func tableName(from metadata: [String: Any]?, fileName: String) -> String {
         if let tableName = metadata?["tableName"] as? String, !tableName.isEmpty {
-            return tableName
+            return Self.legacyWatchTableNameMap[tableName] ?? tableName
         }
 
         for tableName in Self.knownWatchTableNames {
@@ -634,9 +619,15 @@ public class AppleWatchSensor: AwareSensor {
             }
         }
 
+        for (legacyTableName, tableName) in Self.legacyWatchTableNameMap {
+            if fileName.hasPrefix("aw_\(legacyTableName)_") || fileName == "\(legacyTableName).zlib" {
+                return tableName
+            }
+        }
+
         let components = fileName.components(separatedBy: "_")
         if components.count >= 3, components[0] == "aw", components[1] == "watch" {
-            return "watch_\(components[2])"
+            return Self.legacyWatchTableNameMap["watch_\(components[2])"] ?? "watch_\(components[2])"
         }
 
         return "unknown"
@@ -652,6 +643,18 @@ public class AppleWatchSensor: AwareSensor {
         AWDeviceSensorData.databaseTableName,
         AWAmbientNoiseData.databaseTableName,
         AWAudioLabelData.databaseTableName,
+    ]
+
+    private static let legacyWatchTableNameMap = [
+        "watch_motion": AWMotionSensorData.databaseTableName,
+        "watch_battery": AWBatterySensorData.databaseTableName,
+        "watch_location": AWLocationSensorData.databaseTableName,
+        "watch_heading": AWHeadingSensorData.databaseTableName,
+        "watch_bluetooth": AWBluetoothSensorData.databaseTableName,
+        "watch_heartrate": AWHeartRateSensorData.databaseTableName,
+        "watch_device": AWDeviceSensorData.databaseTableName,
+        "watch_ambient_noise": AWAmbientNoiseData.databaseTableName,
+        "watch_audio_label": AWAudioLabelData.databaseTableName,
     ]
 
     private func watchModels(
@@ -740,6 +743,7 @@ public class AppleWatchSensor: AwareSensor {
                     "watch_device_enabled":    self.CONFIG.watchDeviceEnabled,
                     "watch_healthkit_enabled": self.CONFIG.watchHealthKitEnabled,
                     "watch_location_enabled":  self.CONFIG.watchLocationEnabled,
+                    "watch_heading_enabled":   self.CONFIG.watchHeadingEnabled,
                     "watch_audio_enabled":     self.CONFIG.watchAudioEnabled,
                     "watch_uwb_enabled":       self.CONFIG.watchUWBEnabled,
                     "watch_bluetooth_enabled": self.CONFIG.watchBluetoothEnabled,

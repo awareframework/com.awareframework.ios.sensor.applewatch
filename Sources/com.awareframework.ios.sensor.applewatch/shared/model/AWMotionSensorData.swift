@@ -26,7 +26,7 @@ public struct AWMotionSensorData: BaseDbModelSQLite {
     public var deviceId: String = AwareUtils.getCommonDeviceId()
     public var label: String
     
-    public static let databaseTableName = "watch_motion"  // 新しいテーブル名
+    public static let databaseTableName = "ios_watch_motion"
     
     public var accX : Double = 0.0
     public var accY : Double = 0.0

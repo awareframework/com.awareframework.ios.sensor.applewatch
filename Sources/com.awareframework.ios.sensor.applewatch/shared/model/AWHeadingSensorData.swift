@@ -22,7 +22,7 @@ public struct AWHeadingSensorData: BaseDbModelSQLite {
     public var deviceId: String = AwareUtils.getCommonDeviceId()
     public var label:String = ""
 
-    public static let databaseTableName = "watch_heading"
+    public static let databaseTableName = "ios_watch_heading"
     public static let tableName = databaseTableName
 
     public var trueHeading: Double
@@ -38,7 +38,8 @@ public struct AWHeadingSensorData: BaseDbModelSQLite {
                 headingAccuracy: Double,
                 x: Double,
                 y: Double,
-                z: Double) {
+                z: Double,
+                label: String = "") {
         self.timestamp = timestamp
         self.trueHeading = trueHeading
         self.magneticHeading = magneticHeading
@@ -46,14 +47,15 @@ public struct AWHeadingSensorData: BaseDbModelSQLite {
         self.x = x
         self.y = y
         self.z = z
+        self.label = label
     }
 
     public init(_ dict: Dictionary<String, Any>) {
         self.timestamp = dict["timestamp"] as? Int64 ?? 0
-        self.deviceId = dict["deviceId"] as? String ?? AwareUtils.getCommonDeviceId()
-        self.trueHeading = dict["trueHeading"] as? Double ?? 0.0
-        self.magneticHeading = dict["magneticHeading"] as? Double ?? 0.0
-        self.headingAccuracy = dict["headingAccuracy"] as? Double ?? 0.0
+        self.deviceId = dict["deviceId"] as? String ?? dict["device_id"] as? String ?? AwareUtils.getCommonDeviceId()
+        self.trueHeading = dict["trueHeading"] as? Double ?? dict["true_heading"] as? Double ?? 0.0
+        self.magneticHeading = dict["magneticHeading"] as? Double ?? dict["magnetic_heading"] as? Double ?? 0.0
+        self.headingAccuracy = dict["headingAccuracy"] as? Double ?? dict["heading_accuracy"] as? Double ?? 0.0
         self.x = dict["x"] as? Double ?? 0.0
         self.y = dict["y"] as? Double ?? 0.0
         self.z = dict["z"] as? Double ?? 0.0
@@ -63,23 +65,83 @@ public struct AWHeadingSensorData: BaseDbModelSQLite {
     
     public static func createTable(queue: GRDB.DatabaseQueue ) throws {
         try queue.write { db in
-            try db.create(table: AWHeadingSensorData.tableName, ifNotExists: true) { t in
-                t.autoIncrementedPrimaryKey("id")
-                t.column("timestamp", .integer).notNull()
-                t.column("deviceId", .text).notNull()
-                t.column("device_id", .text).notNull()
-                t.column("label", .text).notNull()
-                t.column("timezone", .integer).notNull()
-                t.column("os", .text).notNull()
-                t.column("jsonVersion", .integer).notNull()
-                t.column("true_heading", .double).notNull()
-                t.column("magnetic_heading", .double).notNull()
-                t.column("heading_accuracy", .double).notNull()
-                t.column("x", .double).notNull()
-                t.column("y", .double).notNull()
-                t.column("z", .double).notNull()
+            let existingColumns = try tableColumns(in: db, tableName: tableName)
+            if existingColumns.isEmpty {
+                try createCurrentTable(in: db, tableName: tableName)
+            } else if needsSchemaMigration(existingColumns) {
+                try migrateLegacyTable(in: db, columns: existingColumns)
             }
         }
+    }
+
+    private static func tableColumns(in db: Database, tableName: String) throws -> Set<String> {
+        let rows = try Row.fetchAll(db, sql: "PRAGMA table_info(\(tableName))")
+        return Set(rows.compactMap { $0["name"] as? String })
+    }
+
+    private static func needsSchemaMigration(_ columns: Set<String>) -> Bool {
+        columns.contains("device_id")
+            || columns.contains("true_heading")
+            || columns.contains("magnetic_heading")
+            || columns.contains("heading_accuracy")
+            || !columns.contains("trueHeading")
+            || !columns.contains("magneticHeading")
+            || !columns.contains("headingAccuracy")
+    }
+
+    private static func createCurrentTable(in db: Database, tableName: String) throws {
+        try db.create(table: tableName, ifNotExists: true) { t in
+            t.autoIncrementedPrimaryKey("id")
+            t.column("timestamp", .integer).notNull()
+            t.column("deviceId", .text).notNull()
+            t.column("label", .text).notNull()
+            t.column("timezone", .integer).notNull()
+            t.column("os", .text).notNull()
+            t.column("jsonVersion", .integer).notNull()
+            t.column("trueHeading", .double).notNull()
+            t.column("magneticHeading", .double).notNull()
+            t.column("headingAccuracy", .double).notNull()
+            t.column("x", .double).notNull()
+            t.column("y", .double).notNull()
+            t.column("z", .double).notNull()
+        }
+    }
+
+    private static func migrateLegacyTable(in db: Database, columns: Set<String>) throws {
+        let temporaryTableName = "\(tableName)_migration"
+        try db.execute(sql: "DROP TABLE IF EXISTS \(temporaryTableName)")
+        try createCurrentTable(in: db, tableName: temporaryTableName)
+
+        func value(_ preferred: String, legacy: String? = nil, fallback: String) -> String {
+            if columns.contains(preferred) { return preferred }
+            if let legacy, columns.contains(legacy) { return legacy }
+            return fallback
+        }
+
+        let deviceId = value("deviceId", legacy: "device_id", fallback: "''")
+        let timestamp = value("timestamp", fallback: "0")
+        let label = value("label", fallback: "''")
+        let timezone = value("timezone", fallback: "\(AwareUtils.getTimeZone())")
+        let os = value("os", fallback: "'watchOS'")
+        let jsonVersion = value("jsonVersion", fallback: "1")
+        let trueHeading = value("trueHeading", legacy: "true_heading", fallback: "0")
+        let magneticHeading = value("magneticHeading", legacy: "magnetic_heading", fallback: "0")
+        let headingAccuracy = value("headingAccuracy", legacy: "heading_accuracy", fallback: "0")
+        let x = value("x", fallback: "0")
+        let y = value("y", fallback: "0")
+        let z = value("z", fallback: "0")
+        let id = columns.contains("id") ? "id" : "NULL"
+
+        try db.execute(sql: """
+            INSERT INTO \(temporaryTableName)
+                (id, timestamp, deviceId, label, timezone, os, jsonVersion, trueHeading, magneticHeading, headingAccuracy, x, y, z)
+            SELECT
+                \(id), \(timestamp), \(deviceId), \(label), \(timezone), \(os), \(jsonVersion),
+                \(trueHeading), \(magneticHeading), \(headingAccuracy), \(x), \(y), \(z)
+            FROM \(tableName)
+            """)
+        try db.execute(sql: "DROP TABLE \(tableName)")
+        try db.execute(sql: "ALTER TABLE \(temporaryTableName) RENAME TO \(tableName)")
     }
 
     public func toDictionary() -> [String: Any] {

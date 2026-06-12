@@ -19,7 +19,7 @@ public struct AWHeartRateSensorData: BaseDbModelSQLite {
     public var deviceId: String = AwareUtils.getCommonDeviceId()
     public var label: String
 
-    public static let databaseTableName = "watch_heartrate"
+    public static let databaseTableName = "ios_watch_heart_rate"
 
     public var hr:Double = 0.0
     

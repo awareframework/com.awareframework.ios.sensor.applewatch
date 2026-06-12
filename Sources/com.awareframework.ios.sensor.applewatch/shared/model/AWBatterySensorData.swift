@@ -19,7 +19,7 @@ public struct AWBatterySensorData: BaseDbModelSQLite {
     public var deviceId: String = AwareUtils.getCommonDeviceId()
     public var label: String
     
-    public static let databaseTableName = "watch_battery"  // 新しいテーブル名
+    public static let databaseTableName = "ios_watch_battery"
     
     public var batteryLevel:Double = -1
     public var batteryState:Int = -1
@@ -69,4 +69,3 @@ public struct AWBatterySensorData: BaseDbModelSQLite {
     }
     
 }
-

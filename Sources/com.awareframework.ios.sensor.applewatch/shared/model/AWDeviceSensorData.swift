@@ -26,7 +26,7 @@ public struct AWDeviceSensorData: BaseDbModelSQLite {
     public var deviceId: String = AwareUtils.getCommonDeviceId()
     public var label: String
     
-    public static let databaseTableName = "watch_device"  // 新しいテーブル名
+    public static let databaseTableName = "ios_watch_device"
     
     public var pairedIosDeviceId:String = ""
     
@@ -96,4 +96,3 @@ public struct AWDeviceSensorData: BaseDbModelSQLite {
     }
     
 }
-

@@ -18,7 +18,7 @@ public struct AWLocationSensorData:BaseDbModelSQLite {
     public var deviceId: String = AwareUtils.getCommonDeviceId()
     public var label: String
 
-    public static let databaseTableName = "watch_location"  // 新しいテーブル名
+    public static let databaseTableName = "ios_watch_location"
     
     public var latitude: Double = 0
     public var longitude: Double = 0
@@ -118,4 +118,3 @@ public struct AWLocationSensorData:BaseDbModelSQLite {
         }
     }
 }
-

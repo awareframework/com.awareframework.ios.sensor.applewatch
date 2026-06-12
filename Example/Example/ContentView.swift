@@ -71,7 +71,7 @@ struct ContentView: View {
                         }
                     }
                 } footer: {
-                    Text("Watch から受信した圧縮チャンクを iPhone 側の aware_applewatch SQLite DB に保存します。")
+                    Text("Watch から受信した圧縮チャンクを iPhone 側の aware_apple_watch SQLite DB に保存します。")
                         .font(.caption2)
                 }
 
@@ -160,7 +160,7 @@ private final class WatchDataModel: ObservableObject {
     init() {
         let config = AppleWatchSensor.Config().apply { config in
             config.debug = true
-            config.dbPath = "aware_applewatch"
+            config.dbPath = "aware_apple_watch"
             config.dbTableName = AWMotionSensorData.databaseTableName
             config.dbType = .sqlite
         }

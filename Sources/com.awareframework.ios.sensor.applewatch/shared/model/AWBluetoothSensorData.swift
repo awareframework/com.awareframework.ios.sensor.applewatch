@@ -19,7 +19,7 @@ public struct AWBluetoothSensorData:BaseDbModelSQLite {
     public var deviceId: String = AwareUtils.getCommonDeviceId()
     public var label: String
     
-    public static let databaseTableName = "watch_bluetooth"  // 新しいテーブル名
+    public static let databaseTableName = "ios_watch_bluetooth"
     
     public var identifier:String = ""
     public var name:String = ""

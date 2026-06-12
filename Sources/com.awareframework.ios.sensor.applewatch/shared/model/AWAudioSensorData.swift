@@ -19,7 +19,7 @@ public struct AWAmbientNoiseData: BaseDbModelSQLite {
     public var deviceId: String = AwareUtils.getCommonDeviceId()
     public var label: String
     
-    public static let databaseTableName = "watch_ambient_noise"  // 新しいテーブル名
+    public static let databaseTableName = "ios_watch_ambient_noise"
     
     public var db:Double = 0.0
 
@@ -80,7 +80,7 @@ public struct AWAudioLabelData: BaseDbModelSQLite {
     public var deviceId: String = AwareUtils.getCommonDeviceId()
     public var label: String
     
-    public static let databaseTableName = "watch_audio_label"  // 新しいテーブル名
+    public static let databaseTableName = "ios_watch_audio_label"
     
     public var audioLabel:String = ""
     public var confidence:Double = 0.0
