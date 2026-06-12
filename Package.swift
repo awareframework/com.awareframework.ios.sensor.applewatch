@@ -16,7 +16,7 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/awareframework/com.awareframework.ios.core.git", from: "1.1.1"),
+        .package(url: "https://github.com/awareframework/com.awareframework.ios.core.git", from: "1.3.0"),
         .package(url: "https://github.com/mw99/DataCompression.git", from: "3.8.0"),
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.3.0"),
     ],
