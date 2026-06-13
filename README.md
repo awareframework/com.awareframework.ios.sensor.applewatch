@@ -1,6 +1,6 @@
 # AWARE: AppleWatch
 
-[![License](https://github.com/tetujin/com.awareframework.ios.sensor.applewatch/blob/main/LICENSE)](LICENSE)
+[![License](https://github.com/awareframework/com.awareframework.ios.sensor.applewatch/blob/main/LICENSE)](LICENSE)
 
 ## Overview
 **AWARE-watchOS** is a passive wearable sensing framework for watchOS. This framework allows us to continually collect multiple sensor data on smartwatches with a minimum workload. Especially, this framework collects eight sensors on the smartwatch and transfers the collected data as zlib-compressed JSON chunks to the paired iPhone via WatchConnectivity. The transferred data is managed on an eco-system of the AWARE framework. Moreover, as an option, data can be stored or streamed in the paired smartphone application.
@@ -43,6 +43,10 @@ For more detailes, please check out the paper as follows:
 "[Smartwatch-Based Sensing Framework for Continuous Data Collection: Design and Implementation](https://dl.acm.org/doi/10.1145/3594739.3612874)," Y. Nishiyama and K. Sezaki, UbiComp2023 Workshop (Mental Health: Sensing & Intervention)
 
 
+## Requirements
+iOS 16 or later (iPhone target)  
+watchOS 8 or later (Apple Watch target)
+
 ## Installation
 
 You can integrate this framework into your project via Swift Package Manager (SwiftPM).
@@ -52,7 +56,7 @@ You can integrate this framework into your project via Swift Package Manager (Sw
     * Open `Xcode` -> Select `Menu Bar` -> `File` -> `App Package Dependencies...` 
 
 2. Find the package using the manager
-    * Select `Search Package URL` and type `https://github.com/tetujin/com.awareframework.ios.sensor.applewatch.git`
+    * Select `Search Package URL` and type `https://github.com/awareframework/com.awareframework.ios.sensor.applewatch.git`
 
 3. Import package both `iOS` and `watchOS` targets.
 
@@ -92,7 +96,7 @@ SensorManager.shared.addSensors([appleWatch])
 SensorManager.shared.startAllSensors()
 ```
 
-More detailed sample codes can be found [here](https://github.com/tetujin/com.awareframework.ios.sensor.applewatch/blob/d16646411f5caf89d19797a187fe5c489d93f2eb/Example/com.awareframework.ios.sensor.applewatch/AppDelegate.swift#L30).
+More detailed sample codes can be found [here](https://github.com/awareframework/com.awareframework.ios.sensor.applewatch/blob/d16646411f5caf89d19797a187fe5c489d93f2eb/Example/com.awareframework.ios.sensor.applewatch/AppDelegate.swift#L30).
 
 
 ### watchOS
@@ -125,7 +129,7 @@ AWSensorManager.shared.transferIncrementalData(deleteAfterTransfer: true) { erro
     if let error { print("Transfer failed: \(error)") }
 }
 ```
-More detailed sample codes can be found [here](https://github.com/tetujin/com.awareframework.ios.sensor.applewatch/blob/909f71e0aadc2c05cfa0fb7f21e5584ebb095620/Example/AwareWatch%20Watch%20App/ContentView.swift#L31).
+More detailed sample codes can be found [here](https://github.com/awareframework/com.awareframework.ios.sensor.applewatch/blob/909f71e0aadc2c05cfa0fb7f21e5584ebb095620/Example/AwareWatch%20Watch%20App/ContentView.swift#L31).
 
 
 ## Data Transfer
