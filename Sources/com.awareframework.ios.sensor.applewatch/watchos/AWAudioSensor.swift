@@ -29,6 +29,22 @@ public struct AWAudioClassPoint{
     public var confidence:Double
 }
 
+public enum AWAudioDutyCyclePhase {
+    case active
+    case rest
+}
+
+public struct AWAudioDutyCycleStatus {
+    public let phase: AWAudioDutyCyclePhase
+    public let phaseEndsAt: Date?
+    public let activeDuration: TimeInterval
+    public let restDuration: TimeInterval
+
+    public var isActive: Bool {
+        phase == .active
+    }
+}
+
 
 extension AWAudioSensor: SNResultsObserving {
     
@@ -42,7 +58,7 @@ extension AWAudioSensor: SNResultsObserving {
                 self.audioClasses.append(AWAudioClassPoint(family: c.identifier, date: now, confidence: c.confidence))
             }
             let maxKnownClassies = self.knownClassifications?.count ?? 0
-            let topK = self.CONFIG.storeOnlyTopK ?? maxKnownClassies
+            let topK = min(result.classifications.count, self.CONFIG.storeOnlyTopK ?? maxKnownClassies)
             for audioClass in result.classifications.sorted(by: { a, b in
                 return (a.confidence > b.confidence);
             })[..<topK] {
@@ -66,6 +82,18 @@ extension AWAudioSensor: SNResultsObserving {
             }
         }
     }
+
+    public func request(_ request: SNRequest, didFailWithError error: Error) {
+        if CONFIG.debug {
+            print(TAG, "SoundAnalysis request failed:", error.localizedDescription)
+        }
+    }
+
+    public func requestDidComplete(_ request: SNRequest) {
+        if CONFIG.debug {
+            print(TAG, "SoundAnalysis request completed")
+        }
+    }
     
 }
 
@@ -87,11 +115,14 @@ final public class AWAudioSensor: AwareSensor, ObservableObject{
     @Published public var decibels = [AWDecibelLinePoint]()
     @Published public var audioClasses = [AWAudioClassPoint]()
     
-    var streamAnalyzer : SNAudioStreamAnalyzer!
+    var streamAnalyzer : SNAudioStreamAnalyzer?
     var analysisQueue : DispatchQueue!
 //    public var config = AWSensorConfig()
     var timer:Timer?
     private var isSuspended = false
+    private var dutyCycleActiveUntil: Date?
+    private var dutyCycleRestUntil: Date?
+    private let dutyCycleLock = NSLock()
     
     let TAG = "AWARE::AppleWatch:audio"
 
@@ -120,6 +151,11 @@ final public class AWAudioSensor: AwareSensor, ObservableObject{
         public var activateAmbientNoiseSensor = false
         public var activateRawAudioSensor = false
         public var activateAudioClassificationSensor = false
+
+        /// Controls audio processing duty cycle while keeping microphone capture active.
+        public var dutyCycleEnabled = true
+        public var activeDuration: TimeInterval = 60
+        public var restDuration: TimeInterval = 180
         
         // public var storeOnlyFilterData = true
         public var storeOnlyTopK:Int?
@@ -223,21 +259,42 @@ final public class AWAudioSensor: AwareSensor, ObservableObject{
     }
     
     private func startAudioProcessing(inputNode:AVAudioInputNode){
+        resetDutyCycle()
         
         let inputFormat = inputNode.inputFormat(forBus: self.CONFIG.onBus)
 
-        streamAnalyzer = SNAudioStreamAnalyzer(format: inputFormat)
-        do {
-            if let model = self.CONFIG.audioClassifierModel {
-                let request = try SNClassifySoundRequest(mlModel: model)
-                self.knownClassifications = request.knownClassifications
-                try streamAnalyzer.add(request, withObserver: self)
-            }else{
-                let request = try SNClassifySoundRequest(classifierIdentifier: .version1)
-                try streamAnalyzer.add(request, withObserver: self)
-                self.knownClassifications = request.knownClassifications
+        if self.CONFIG.activateAudioClassificationSensor {
+            if self.CONFIG.debug {
+                print(self.TAG, "setting up audio classification")
             }
-        }catch{
+            streamAnalyzer = SNAudioStreamAnalyzer(format: inputFormat)
+            do {
+                if let model = self.CONFIG.audioClassifierModel {
+                    let request = try SNClassifySoundRequest(mlModel: model)
+                    self.knownClassifications = request.knownClassifications
+                    try streamAnalyzer?.add(request, withObserver: self)
+                    if self.CONFIG.debug {
+                        print(self.TAG, "custom audio classifier ready knownClassifications=\(request.knownClassifications.count)")
+                    }
+                }else{
+                    let request = try SNClassifySoundRequest(classifierIdentifier: .version1)
+                    try streamAnalyzer?.add(request, withObserver: self)
+                    self.knownClassifications = request.knownClassifications
+                    if self.CONFIG.debug {
+                        print(self.TAG, "iOS built-in audio classifier ready knownClassifications=\(request.knownClassifications.count)")
+                    }
+                }
+            }catch{
+                if self.CONFIG.debug {
+                    print(self.TAG, "SoundAnalysis setup error:", error)
+                }
+            }
+        } else {
+            if self.CONFIG.debug {
+                print(self.TAG, "audio classification disabled")
+            }
+            streamAnalyzer = nil
+            knownClassifications = nil
         }
         
         // <AVAudioFormat 0x15dc08c0:  1 ch,  48000 Hz, Float32>
@@ -248,14 +305,16 @@ final public class AWAudioSensor: AwareSensor, ObservableObject{
             if let tapBlock = self.CONFIG.audioBufferHandler {
                 tapBlock(buffer, when)
             }
+
+            let shouldProcessAudio = self.shouldProcessAudio(now: Date())
             
-            if self.CONFIG.activateAudioClassificationSensor {
+            if shouldProcessAudio, self.CONFIG.activateAudioClassificationSensor, let streamAnalyzer = self.streamAnalyzer {
                 self.analysisQueue.async {
-                    self.streamAnalyzer.analyze(buffer, atAudioFramePosition: when.sampleTime)
+                    streamAnalyzer.analyze(buffer, atAudioFramePosition: when.sampleTime)
                 }
             }
             
-            if self.CONFIG.activateAmbientNoiseSensor {
+            if shouldProcessAudio, self.CONFIG.activateAmbientNoiseSensor {
                 if let audioData = buffer.floatChannelData?[0] {
                     let rms = SignalProcessing.rms(data: audioData, frameLength: UInt(buffer.frameLength))
                     let db = SignalProcessing.db(from: rms)
@@ -351,6 +410,9 @@ final public class AWAudioSensor: AwareSensor, ObservableObject{
         self.audioEngine.disconnectNodeOutput(self.audioEngine.inputNode)
         self.audioEngine.inputNode.removeTap(onBus: self.CONFIG.onBus)
         self.audioEngine.reset()
+        self.streamAnalyzer?.removeAllRequests()
+        self.streamAnalyzer = nil
+        resetDutyCycle()
     }
     
     private func stopAudioRecord(){
@@ -408,6 +470,66 @@ final public class AWAudioSensor: AwareSensor, ObservableObject{
                 print("scheduled successfully")
             }
         }
+    }
+
+    public func currentDutyCycleStatus(now: Date = Date()) -> AWAudioDutyCycleStatus? {
+        guard CONFIG.dutyCycleEnabled else { return nil }
+        let isActive = shouldProcessAudio(now: now)
+
+        dutyCycleLock.lock()
+        defer { dutyCycleLock.unlock() }
+
+        let activeDuration = max(0.1, CONFIG.activeDuration)
+        let restDuration = max(0.1, CONFIG.restDuration)
+        let activeUntil = dutyCycleActiveUntil
+        let restUntil = dutyCycleRestUntil
+
+        return AWAudioDutyCycleStatus(
+            phase: isActive ? .active : .rest,
+            phaseEndsAt: isActive ? activeUntil : restUntil,
+            activeDuration: activeDuration,
+            restDuration: restDuration
+        )
+    }
+
+    private func resetDutyCycle() {
+        dutyCycleLock.lock()
+        dutyCycleActiveUntil = nil
+        dutyCycleRestUntil = nil
+        dutyCycleLock.unlock()
+    }
+
+    private func shouldProcessAudio(now: Date) -> Bool {
+        guard CONFIG.dutyCycleEnabled else { return true }
+
+        let activeDuration = max(0.1, CONFIG.activeDuration)
+        let restDuration = max(0.1, CONFIG.restDuration)
+
+        dutyCycleLock.lock()
+        defer { dutyCycleLock.unlock() }
+
+        if dutyCycleActiveUntil == nil && dutyCycleRestUntil == nil {
+            dutyCycleActiveUntil = now.addingTimeInterval(activeDuration)
+            return true
+        }
+
+        if let activeUntil = dutyCycleActiveUntil, now < activeUntil {
+            return true
+        }
+
+        if dutyCycleRestUntil == nil {
+            dutyCycleRestUntil = now.addingTimeInterval(restDuration)
+            dutyCycleActiveUntil = nil
+            return false
+        }
+
+        if let restUntil = dutyCycleRestUntil, now < restUntil {
+            return false
+        }
+
+        dutyCycleRestUntil = nil
+        dutyCycleActiveUntil = now.addingTimeInterval(activeDuration)
+        return true
     }
     
     @objc func handleInterruption(notification: Notification) {

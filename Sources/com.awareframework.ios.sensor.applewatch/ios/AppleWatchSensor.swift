@@ -1,5 +1,6 @@
 #if os(iOS)
 
+import Foundation
 import WatchConnectivity
 import com_awareframework_ios_core
 import com_awareframework_ios_sensor_applewatch_shared
@@ -24,6 +25,8 @@ public class AppleWatchSensor: AwareSensor {
         public var fileTransferIntervalSeconds:Double = 60 * 15 // 15 minutes
 
         public var motionSensorHz:Int = 10
+        public var watchMotionAccelerometerEnabled: Bool = true
+        public var watchMotionDeviceMotionEnabled: Bool = true
         public var sensorObserver:AppleWatchObserver?
 
         public var keepOriginalFileFromWatch:Bool = false
@@ -39,6 +42,12 @@ public class AppleWatchSensor: AwareSensor {
         public var watchAudioEnabled:Bool     = false
         public var watchUWBEnabled:Bool       = false
         public var watchBluetoothEnabled:Bool = false
+
+        public var watchAudioAmbientNoiseEnabled: Bool = true
+        public var watchAudioClassificationEnabled: Bool = true
+        public var watchAudioDutyCycleEnabled: Bool = true
+        public var watchAudioActiveDuration: TimeInterval = 60
+        public var watchAudioRestDuration: TimeInterval = 180
 
         /// Called on the main thread whenever a chunk sent by `AWDataTransferManager`
         /// (watchOS) is received and decompressed successfully.
@@ -738,6 +747,8 @@ public class AppleWatchSensor: AwareSensor {
                     "file_transfer_interval_seconds": self.CONFIG.fileTransferIntervalSeconds,
                     "label": self.CONFIG.label,
                     "debug": self.CONFIG.debug,
+                    "watch_motion_accelerometer_enabled": self.CONFIG.watchMotionAccelerometerEnabled,
+                    "watch_motion_device_motion_enabled": self.CONFIG.watchMotionDeviceMotionEnabled,
                     "watch_motion_enabled":    self.CONFIG.watchMotionEnabled,
                     "watch_battery_enabled":   self.CONFIG.watchBatteryEnabled,
                     "watch_device_enabled":    self.CONFIG.watchDeviceEnabled,
@@ -747,6 +758,11 @@ public class AppleWatchSensor: AwareSensor {
                     "watch_audio_enabled":     self.CONFIG.watchAudioEnabled,
                     "watch_uwb_enabled":       self.CONFIG.watchUWBEnabled,
                     "watch_bluetooth_enabled": self.CONFIG.watchBluetoothEnabled,
+                    "watch_audio_ambient_noise_enabled": self.CONFIG.watchAudioAmbientNoiseEnabled,
+                    "watch_audio_classification_enabled": self.CONFIG.watchAudioClassificationEnabled,
+                    "watch_audio_duty_cycle_enabled": self.CONFIG.watchAudioDutyCycleEnabled,
+                    "watch_audio_active_duration": self.CONFIG.watchAudioActiveDuration,
+                    "watch_audio_rest_duration": self.CONFIG.watchAudioRestDuration,
                 ]
                 if let host = self.CONFIG.dbHost {
                     settings["db_host"] = host

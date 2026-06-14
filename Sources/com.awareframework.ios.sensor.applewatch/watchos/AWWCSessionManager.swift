@@ -53,10 +53,16 @@ public class AWWCSessionManager: NSObject, WCSessionDelegate{
     ///
     /// Fields available in the returned dictionary for caller use:
     /// - `motion_sensor_hz`: motion sensor sampling rate
+    /// - `watch_motion_accelerometer_enabled`, `watch_motion_device_motion_enabled`:
+    ///   motion sub-sensor on/off flags
     /// - `file_transfer_interval_seconds`: Watch to iPhone transfer interval
     /// - `watch_motion_enabled`, `watch_battery_enabled`, `watch_device_enabled`,
     ///   `watch_healthkit_enabled`, `watch_location_enabled`, `watch_audio_enabled`,
     ///   `watch_uwb_enabled`, `watch_bluetooth_enabled`: sensor on/off flags
+    /// - `watch_audio_ambient_noise_enabled`: ambient noise level on/off
+    /// - `watch_audio_classification_enabled`: audio label classification on/off
+    /// - `watch_audio_duty_cycle_enabled`, `watch_audio_active_duration`,
+    ///   `watch_audio_rest_duration`: audio processing duty cycle settings
     ///   (apply these manually; only the caller knows which sensor instances to start/stop)
     public func applyiPhoneSettings(completion: (([String: Any]) -> Void)? = nil) {
         getSettings { settings in

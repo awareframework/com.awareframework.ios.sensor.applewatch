@@ -351,6 +351,8 @@ Settings returned by `get_settings`:
 | `label` | `String` | ✓ `sensor.set(label:)` | Data label. Set by QR code scan (`study_key`) |
 | `debug` | `Bool` | ✓ `syncConfig.debug` | Debug logging flag |
 | `motion_sensor_hz` | `Int` | — (apply manually) | Motion sensor sampling rate |
+| `watch_motion_accelerometer_enabled` | `Bool` | — (apply manually) | Whether to run the accelerometer inside the Watch motion sensor |
+| `watch_motion_device_motion_enabled` | `Bool` | — (apply manually) | Whether to run device motion inside the Watch motion sensor |
 | `file_transfer_interval_seconds` | `Double` | — (apply manually) | Watch→iPhone transfer interval |
 | `watch_motion_enabled` | `Bool` | — (apply manually) | Whether to run the motion sensor on the Watch |
 | `watch_battery_enabled` | `Bool` | — (apply manually) | Whether to run the battery sensor on the Watch |
@@ -358,6 +360,11 @@ Settings returned by `get_settings`:
 | `watch_healthkit_enabled` | `Bool` | — (apply manually) | Whether to run the HealthKit (heart rate) sensor on the Watch |
 | `watch_location_enabled` | `Bool` | — (apply manually) | Whether to run the location sensor on the Watch |
 | `watch_audio_enabled` | `Bool` | — (apply manually) | Whether to run the audio/noise sensor on the Watch |
+| `watch_audio_ambient_noise_enabled` | `Bool` | — (apply manually) | Whether to run ambient noise level processing on the Watch |
+| `watch_audio_classification_enabled` | `Bool` | — (apply manually) | Whether to run audio label classification on the Watch |
+| `watch_audio_duty_cycle_enabled` | `Bool` | — (apply manually) | Whether to duty-cycle Watch audio processing while keeping microphone capture active |
+| `watch_audio_active_duration` | `Double` | — (apply manually) | Watch audio processing active duration in seconds |
+| `watch_audio_rest_duration` | `Double` | — (apply manually) | Watch audio processing rest duration in seconds |
 | `watch_uwb_enabled` | `Bool` | — (apply manually) | Whether to run the UWB sensor on the Watch |
 | `watch_bluetooth_enabled` | `Bool` | — (apply manually) | Whether to run the Bluetooth sensor on the Watch |
 
@@ -373,10 +380,24 @@ AWWCSessionManager.shared.applyiPhoneSettings { settings in
     let locationOn  = settings["watch_location_enabled"]  as? Bool ?? false
     let audioOn     = settings["watch_audio_enabled"]     as? Bool ?? false
     let hz          = settings["motion_sensor_hz"]        as? Int  ?? 10
+    let accOn = settings["watch_motion_accelerometer_enabled"] as? Bool ?? true
+    let deviceMotionOn = settings["watch_motion_device_motion_enabled"] as? Bool ?? true
+    let ambientNoiseOn = settings["watch_audio_ambient_noise_enabled"] as? Bool ?? true
+    let audioClassificationOn = settings["watch_audio_classification_enabled"] as? Bool ?? true
+    let audioDutyCycleOn = settings["watch_audio_duty_cycle_enabled"] as? Bool ?? true
+    let audioActive = settings["watch_audio_active_duration"] as? Double ?? 60
+    let audioRest = settings["watch_audio_rest_duration"] as? Double ?? 180
 
     // Update your sensor controller state on the main thread
     DispatchQueue.main.async {
         motionSensor.CONFIG.motionSensorHz = hz
+        motionSensor.CONFIG.activateAccelerometerSensor = accOn
+        motionSensor.CONFIG.activateDeviceMotionSensor = deviceMotionOn
+        audioSensor.CONFIG.activateAmbientNoiseSensor = ambientNoiseOn
+        audioSensor.CONFIG.activateAudioClassificationSensor = audioClassificationOn
+        audioSensor.CONFIG.dutyCycleEnabled = audioDutyCycleOn
+        audioSensor.CONFIG.activeDuration = audioActive
+        audioSensor.CONFIG.restDuration = audioRest
         var sensorsToStart: [AwareSensor] = []
         if motionOn  { sensorsToStart.append(motionSensor)  }
         if batteryOn { sensorsToStart.append(batterySensor) }
@@ -483,4 +504,3 @@ If this framework hope your research projects, please cite the following paper.
     tppubtype = {inproceedings}
 }
 ```
-

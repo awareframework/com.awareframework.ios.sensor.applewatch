@@ -52,6 +52,10 @@ public class AWMotionSensor: AwareSensor, ObservableObject {
                 
         public var motionSensorHz  = 10
         public var saveIntervalSeconds = 10
+        public var activateAccelerometerSensor = true
+        public var activateGyroscopeSensor = true
+        public var activateMagnetometerSensor = true
+        public var activateDeviceMotionSensor = true
         
         public override init(){
             super.init()
@@ -123,25 +127,25 @@ public class AWMotionSensor: AwareSensor, ObservableObject {
     private func startMotionSensors(hz:Int){
         let interval = 1.0 / Double(hz)
 
-        if self.motion.isAccelerometerAvailable{
+        if CONFIG.activateAccelerometerSensor, self.motion.isAccelerometerAvailable{
             print(TAG, "Start Acc sensors: interval = \(interval)")
             self.motion.accelerometerUpdateInterval = interval
             self.motion.startAccelerometerUpdates()
         }
         
-        if self.motion.isGyroAvailable {
+        if CONFIG.activateGyroscopeSensor, self.motion.isGyroAvailable {
             print(TAG, "Start Gyro sensors: interval = \(interval)")
             self.motion.gyroUpdateInterval = interval
             self.motion.startGyroUpdates()
         }
 
-        if self.motion.isMagnetometerAvailable {
+        if CONFIG.activateMagnetometerSensor, self.motion.isMagnetometerAvailable {
             print(TAG, "Start Magnetometer sensor: interval = \(interval)")
             self.motion.magnetometerUpdateInterval = interval
             self.motion.startMagnetometerUpdates()
         }
 
-        if self.motion.isDeviceMotionAvailable{
+        if CONFIG.activateDeviceMotionSensor, self.motion.isDeviceMotionAvailable{
             print(TAG, "Start Device Motion sensors: interval = \(interval)")
             self.motion.deviceMotionUpdateInterval = interval
             self.motion.startDeviceMotionUpdates()
@@ -164,29 +168,34 @@ public class AWMotionSensor: AwareSensor, ObservableObject {
                 
                 let now = Date()
                 
-                if let accData = self.motion.accelerometerData,
-                   let motionData = self.motion.deviceMotion{
+                if self.CONFIG.activateAccelerometerSensor || self.CONFIG.activateDeviceMotionSensor || self.CONFIG.activateGyroscopeSensor {
+                    let acc = self.CONFIG.activateAccelerometerSensor ? self.motion.accelerometerData?.acceleration : nil
+                    let motionData = self.CONFIG.activateDeviceMotionSensor ? self.motion.deviceMotion : nil
+                    let rotation = self.CONFIG.activateGyroscopeSensor ? self.motion.gyroData?.rotationRate : nil
+                    guard acc != nil || motionData != nil || rotation != nil else {
+                        return
+                    }
                     let data = AWMotionSensorData(timestamp: Int64(now.timeIntervalSince1970 * 1000),
-                                                  accX: accData.acceleration.x,
-                                                  accY: accData.acceleration.y,
-                                                  accZ: accData.acceleration.z,
-                                                  roll: motionData.attitude.roll,
-                                                  pitch: motionData.attitude.pitch,
-                                                  yaw: motionData.attitude.yaw,
-                                                  gravityX: motionData.gravity.x,
-                                                  gravityY: motionData.gravity.y,
-                                                  gravityZ: motionData.gravity.z,
-                                                  rotationX: motionData.rotationRate.x,
-                                                  rotationY: motionData.rotationRate.y,
-                                                  rotationZ: motionData.rotationRate.z,
-                                                  userAccX: motionData.userAcceleration.x,
-                                                  userAccY: motionData.userAcceleration.y,
-                                                  userAccZ: motionData.userAcceleration.z,
+                                                  accX: acc?.x ?? 0,
+                                                  accY: acc?.y ?? 0,
+                                                  accZ: acc?.z ?? 0,
+                                                  roll: motionData?.attitude.roll ?? 0,
+                                                  pitch: motionData?.attitude.pitch ?? 0,
+                                                  yaw: motionData?.attitude.yaw ?? 0,
+                                                  gravityX: motionData?.gravity.x ?? 0,
+                                                  gravityY: motionData?.gravity.y ?? 0,
+                                                  gravityZ: motionData?.gravity.z ?? 0,
+                                                  rotationX: motionData?.rotationRate.x ?? rotation?.x ?? 0,
+                                                  rotationY: motionData?.rotationRate.y ?? rotation?.y ?? 0,
+                                                  rotationZ: motionData?.rotationRate.z ?? rotation?.z ?? 0,
+                                                  userAccX: motionData?.userAcceleration.x ?? 0,
+                                                  userAccY: motionData?.userAcceleration.y ?? 0,
+                                                  userAccZ: motionData?.userAcceleration.z ?? 0,
                                                   label: self.CONFIG.label)
                     self.dataBuffer.append(data)
                 }
 
-                if let acc = self.motion.accelerometerData {
+                if self.CONFIG.activateAccelerometerSensor, let acc = self.motion.accelerometerData {
                     self.accelerations.append(AWAccelerationLinePoint(date: now,
                                                                       x: acc.acceleration.x ,
                                                                       y: acc.acceleration.y,
@@ -194,7 +203,7 @@ public class AWMotionSensor: AwareSensor, ObservableObject {
                     if (self.accelerations.count > 100) {self.accelerations.removeFirst()}
                 }
                 
-                if let deviceMotion = self.motion.deviceMotion {
+                if self.CONFIG.activateDeviceMotionSensor, let deviceMotion = self.motion.deviceMotion {
                     self.motions.append(AWRotationLinePoint(date: now,
                                                             x: deviceMotion.rotationRate.x,
                                                             y: deviceMotion.rotationRate.y,
@@ -226,12 +235,22 @@ public class AWMotionSensor: AwareSensor, ObservableObject {
 
 
     private func stopMotionSensors(){
-        if self.motion.isAccelerometerAvailable{
+        if self.motion.isAccelerometerActive {
             self.motion.stopAccelerometerUpdates()
             print(TAG, "Stop Accelerometer sensor")
         }
 
-        if self.motion.isDeviceMotionAvailable{
+        if self.motion.isGyroActive {
+            self.motion.stopGyroUpdates()
+            print(TAG, "Stop Gyro sensor")
+        }
+
+        if self.motion.isMagnetometerActive {
+            self.motion.stopMagnetometerUpdates()
+            print(TAG, "Stop Magnetometer sensor")
+        }
+
+        if self.motion.isDeviceMotionActive {
             self.motion.stopDeviceMotionUpdates()
             print(TAG, "Stop Device Motion sensor")
         }

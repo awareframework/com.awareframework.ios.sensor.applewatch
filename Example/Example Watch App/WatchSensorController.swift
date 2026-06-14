@@ -51,6 +51,8 @@ final class WatchSensorController: NSObject, ObservableObject {
     private lazy var motion = AWMotionSensor(AWMotionSensor.Config().apply { config in
         config.motionSensorHz = 10
         config.saveIntervalSeconds = 10
+        config.activateAccelerometerSensor = true
+        config.activateDeviceMotionSensor = true
         config.debug = true
     })
 
@@ -80,7 +82,7 @@ final class WatchSensorController: NSObject, ObservableObject {
     private lazy var audio = AWAudioSensor(AWAudioSensor.Config().apply { config in
         config.debug = true
         config.activateAmbientNoiseSensor = true
-        config.activateAudioClassificationSensor = false
+        config.activateAudioClassificationSensor = true
         config.storeOnlyTopK = 5
     })
 
@@ -122,6 +124,13 @@ final class WatchSensorController: NSObject, ObservableObject {
                 if let v = settings["watch_location_enabled"] as? Bool { self.locationEnabled = v }
                 if let v = settings["watch_audio_enabled"] as? Bool { self.audioEnabled = v }
                 if let v = settings["motion_sensor_hz"] as? Int { self.motion.CONFIG.motionSensorHz = v }
+                if let v = settings["watch_motion_accelerometer_enabled"] as? Bool { self.motion.CONFIG.activateAccelerometerSensor = v }
+                if let v = settings["watch_motion_device_motion_enabled"] as? Bool { self.motion.CONFIG.activateDeviceMotionSensor = v }
+                if let v = settings["watch_audio_ambient_noise_enabled"] as? Bool { self.audio.CONFIG.activateAmbientNoiseSensor = v }
+                if let v = settings["watch_audio_classification_enabled"] as? Bool { self.audio.CONFIG.activateAudioClassificationSensor = v }
+                if let v = settings["watch_audio_duty_cycle_enabled"] as? Bool { self.audio.CONFIG.dutyCycleEnabled = v }
+                if let v = settings["watch_audio_active_duration"] as? TimeInterval { self.audio.CONFIG.activeDuration = v }
+                if let v = settings["watch_audio_rest_duration"] as? TimeInterval { self.audio.CONFIG.restDuration = v }
                 self.statusMessage = "Settings applied from iPhone"
             }
         }
