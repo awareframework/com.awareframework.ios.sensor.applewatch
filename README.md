@@ -78,6 +78,53 @@ The required pairs of Key and Value depend on what you are going to use in your 
 ![info.plist](/images/info_plist.png)
 
 
+## Sensor configuration
+
+### AWMotionSensor.Config (watchOS)
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `motionSensorHz` | `Int` | `10` | Sampling rate in Hz |
+| `saveIntervalSeconds` | `Int` | `10` | How often buffered records are flushed to the database |
+| `activateAccelerometerSensor` | `Bool` | `true` | Enable raw accelerometer data collection |
+| `activateGyroscopeSensor` | `Bool` | `true` | Enable gyroscope data collection |
+| `activateMagnetometerSensor` | `Bool` | `true` | Enable magnetometer data collection |
+| `activateDeviceMotionSensor` | `Bool` | `true` | Enable device-motion (attitude, gravity, rotation rate) data collection |
+
+Each sub-sensor can be toggled independently. Fields for a disabled sub-sensor are stored as `0` in the database.
+
+### AWAudioSensor.Config (watchOS)
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `activateAmbientNoiseSensor` | `Bool` | `false` | Enable decibel level measurement |
+| `activateAudioClassificationSensor` | `Bool` | `false` | Enable sound label classification via SoundAnalysis |
+| `dutyCycleEnabled` | `Bool` | `true` | Enable duty cycle control: audio analysis pauses during the rest phase while the microphone tap stays active |
+| `activeDuration` | `TimeInterval` | `60` | Duration of the active processing phase in seconds |
+| `restDuration` | `TimeInterval` | `180` | Duration of the rest (paused) phase in seconds |
+| `storeOnlyTopK` | `Int?` | `nil` | Store only the top-K classifications by confidence; `nil` stores all |
+
+Call `currentDutyCycleStatus()` to query the current phase (`active` or `rest`) and the time at which the phase ends.
+
+### AppleWatchSensor.Config (iOS)
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `motionSensorHz` | `Int` | `10` | Motion sampling rate sent to the Watch |
+| `watchMotionAccelerometerEnabled` | `Bool` | `true` | Enable accelerometer on the Watch |
+| `watchMotionDeviceMotionEnabled` | `Bool` | `true` | Enable device motion on the Watch |
+| `watchAudioAmbientNoiseEnabled` | `Bool` | `true` | Enable ambient noise level processing on the Watch |
+| `watchAudioClassificationEnabled` | `Bool` | `true` | Enable audio label classification on the Watch |
+| `watchAudioDutyCycleEnabled` | `Bool` | `true` | Enable duty cycle audio processing on the Watch |
+| `watchAudioActiveDuration` | `TimeInterval` | `60` | Watch audio active phase duration in seconds |
+| `watchAudioRestDuration` | `TimeInterval` | `180` | Watch audio rest phase duration in seconds |
+| `fileTransferIntervalSeconds` | `Double` | `900` | How often Watch data is transferred to the iPhone |
+| `watchMotionEnabled` | `Bool` | `true` | Enable the motion sensor on the Watch |
+| `watchBatteryEnabled` | `Bool` | `true` | Enable the battery sensor on the Watch |
+| `watchAudioEnabled` | `Bool` | `false` | Enable the audio/noise sensor on the Watch |
+
+These values are included in the settings dictionary sent to the Watch via `get_settings`. Apply them manually in `applyiPhoneSettings()` as shown in the code examples below.
+
 ## Development
 The following source code shows a minimum sample code for collecting sensor data on a smartwatch. A developer has to write source codes on both iOS and wathcOS as follows.
 
