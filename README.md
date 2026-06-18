@@ -1,5 +1,6 @@
 # AWARE: AppleWatch
 
+[![Swift Package Manager compatible](https://img.shields.io/badge/Swift%20Package%20Manager-compatible-brightgreen.svg)](https://github.com/apple/swift-package-manager)
 [![License](https://github.com/awareframework/com.awareframework.ios.sensor.applewatch/blob/main/LICENSE)](LICENSE)
 
 ## Overview
