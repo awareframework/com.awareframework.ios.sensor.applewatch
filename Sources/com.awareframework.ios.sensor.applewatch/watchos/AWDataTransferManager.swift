@@ -127,8 +127,9 @@ public class AWDataTransferManager: NSObject, ObservableObject {
         }
         completionHandler = completion
         resetState()
+        let exportableSensors = self.exportableSensors(from: sensors)
         workQueue.async { [weak self] in
-            self?.prepareAndTransfer(sensors: sensors)
+            self?.prepareAndTransfer(sensors: exportableSensors)
         }
     }
 
@@ -331,6 +332,28 @@ public class AWDataTransferManager: NSObject, ObservableObject {
     }
 
     // MARK: - Progress polling
+
+    private func exportableSensors(from sensors: [AwareSensor]) -> [AwareSensor] {
+        var exportable: [AwareSensor] = []
+
+        for sensor in sensors {
+            if let audioSensor = sensor as? AWAudioSensor {
+                if audioSensor.CONFIG.activateAmbientNoiseSensor,
+                   let ambientNoiseSensor = audioSensor.ambientNoiseSensor {
+                    exportable.append(ambientNoiseSensor)
+                }
+                if audioSensor.CONFIG.activateAudioClassificationSensor,
+                   let audioLabelSensor = audioSensor.audioLabelSensor {
+                    exportable.append(audioLabelSensor)
+                }
+                continue
+            }
+
+            exportable.append(sensor)
+        }
+
+        return exportable
+    }
 
     private func startPolling() {
         stopPolling()

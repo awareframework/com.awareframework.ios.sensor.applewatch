@@ -33,7 +33,9 @@ public struct AWAmbientNoiseData: BaseDbModelSQLite {
     
     public init(_ dict: Dictionary<String, Any>) {
         self.timestamp = dict["timestamp"] as? Int64 ?? 0
-        self.deviceId = dict["deviceId"] as? String ?? ""
+        self.deviceId = dict["deviceId"] as? String
+            ?? dict["device_id"] as? String
+            ?? AwareUtils.getCommonDeviceId()
         self.db = dict["db"] as? Double ?? 0
         self.label = dict["label"] as? String ?? ""
     }
@@ -94,7 +96,9 @@ public struct AWAudioLabelData: BaseDbModelSQLite {
     
     public init(_ dict: Dictionary<String, Any>) {
         self.timestamp  = dict["timestamp"] as? Int64 ?? 0
-        self.deviceId   = dict["deviceId"] as? String ?? ""
+        self.deviceId   = dict["deviceId"] as? String
+            ?? dict["device_id"] as? String
+            ?? AwareUtils.getCommonDeviceId()
         self.audioLabel = dict["audioLabel"] as? String ?? ""
         self.confidence = dict["confidence"] as? Double ?? 0
         self.label      = dict["label"] as? String ?? ""

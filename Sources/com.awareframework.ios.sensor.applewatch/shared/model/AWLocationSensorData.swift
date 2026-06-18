@@ -59,7 +59,9 @@ public struct AWLocationSensorData:BaseDbModelSQLite {
 
     public init(_ dict: Dictionary<String, Any>) {
         self.timestamp = dict["timestamp"] as? Int64 ?? 0
-        self.deviceId = dict["device_id"] as? String ?? AwareUtils.getCommonDeviceId()
+        self.deviceId = dict["deviceId"] as? String
+            ?? dict["device_id"] as? String
+            ?? AwareUtils.getCommonDeviceId()
         self.latitude = dict["latitude"] as? Double ?? 0
         self.longitude = dict["longitude"] as? Double ?? 0
         self.altitude = dict["altitude"] as? Double ?? 0

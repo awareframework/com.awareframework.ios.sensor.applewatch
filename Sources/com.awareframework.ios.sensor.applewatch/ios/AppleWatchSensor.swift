@@ -42,6 +42,7 @@ public class AppleWatchSensor: AwareSensor {
         public var watchAudioEnabled:Bool     = false
         public var watchUWBEnabled:Bool       = false
         public var watchBluetoothEnabled:Bool = false
+        public var watchBackgroundSessionType: AWBackgroundSessionType = .microphone
 
         public var watchAudioAmbientNoiseEnabled: Bool = true
         public var watchAudioClassificationEnabled: Bool = true
@@ -84,6 +85,11 @@ public class AppleWatchSensor: AwareSensor {
             super.set(config: config)
             if let interval = config["motion_sensor_hz"] as? Int {
                 self.motionSensorHz = interval
+            }
+            if let type = config["watch_background_session_type"] as? String {
+                self.watchBackgroundSessionType = AWBackgroundSessionType(rawValueOrDefault: type)
+            } else if let type = config["watchBackgroundSessionType"] as? String {
+                self.watchBackgroundSessionType = AWBackgroundSessionType(rawValueOrDefault: type)
             }
         }
         
@@ -758,6 +764,7 @@ public class AppleWatchSensor: AwareSensor {
                     "watch_audio_enabled":     self.CONFIG.watchAudioEnabled,
                     "watch_uwb_enabled":       self.CONFIG.watchUWBEnabled,
                     "watch_bluetooth_enabled": self.CONFIG.watchBluetoothEnabled,
+                    "watch_background_session_type": self.CONFIG.watchBackgroundSessionType.rawValue,
                     "watch_audio_ambient_noise_enabled": self.CONFIG.watchAudioAmbientNoiseEnabled,
                     "watch_audio_classification_enabled": self.CONFIG.watchAudioClassificationEnabled,
                     "watch_audio_duty_cycle_enabled": self.CONFIG.watchAudioDutyCycleEnabled,

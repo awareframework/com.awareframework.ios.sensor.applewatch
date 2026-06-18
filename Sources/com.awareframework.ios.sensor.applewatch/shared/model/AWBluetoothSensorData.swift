@@ -35,6 +35,9 @@ public struct AWBluetoothSensorData:BaseDbModelSQLite {
     
     public init(_ dict: Dictionary<String, Any>) {
         self.timestamp = dict["timestamp"] as? Int64 ?? 0
+        self.deviceId = dict["deviceId"] as? String
+            ?? dict["device_id"] as? String
+            ?? AwareUtils.getCommonDeviceId()
         self.identifier = dict["identifier"] as? String ?? ""
         self.name = dict["name"] as? String ?? ""
         self.rssi = dict["rssi"] as? Double ?? 0.0

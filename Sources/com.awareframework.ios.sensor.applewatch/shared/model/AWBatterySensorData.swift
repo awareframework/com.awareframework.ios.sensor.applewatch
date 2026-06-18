@@ -35,9 +35,19 @@ public struct AWBatterySensorData: BaseDbModelSQLite {
     
     public init(_ dict: Dictionary<String, Any>) {
         self.timestamp = dict["timestamp"] as? Int64 ?? 0
-        self.deviceId = dict["deviceId"] as? String ?? ""
+        self.deviceId = dict["deviceId"] as? String
+            ?? dict["device_id"] as? String
+            ?? AwareUtils.getCommonDeviceId()
         self.batteryLevel = dict["batteryLevel"] as? Double ?? -1
-        self.batteryState = dict["batteryState"] as? Int ?? -1
+        if let batteryState = dict["batteryState"] as? Int {
+            self.batteryState = batteryState
+        } else if let batteryState = dict["batteryState"] as? Int64 {
+            self.batteryState = Int(batteryState)
+        } else if let batteryState = dict["batteryState"] as? NSNumber {
+            self.batteryState = batteryState.intValue
+        } else {
+            self.batteryState = -1
+        }
         self.label = dict["label"] as? String ?? ""
     }
     

@@ -72,7 +72,9 @@ public struct AWMotionSensorData: BaseDbModelSQLite {
     
     public init(_ dict: Dictionary<String, Any>) {
         self.timestamp = dict["timestamp"] as? Int64 ?? 0
-        self.deviceId = dict["deviceId"] as? String ?? ""
+        self.deviceId = dict["deviceId"] as? String
+            ?? dict["device_id"] as? String
+            ?? AwareUtils.getCommonDeviceId()
         self.label = dict["label"] as? String ?? ""
         self.accX = dict["accX"] as? Double ?? 0
         self.accY = dict["accY"] as? Double ?? 0

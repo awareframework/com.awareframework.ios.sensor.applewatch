@@ -59,6 +59,7 @@ public class AWWCSessionManager: NSObject, WCSessionDelegate{
     /// - `watch_motion_enabled`, `watch_battery_enabled`, `watch_device_enabled`,
     ///   `watch_healthkit_enabled`, `watch_location_enabled`, `watch_audio_enabled`,
     ///   `watch_uwb_enabled`, `watch_bluetooth_enabled`: sensor on/off flags
+    /// - `watch_background_session_type`: `none`, `workout`, or `microphone`
     /// - `watch_audio_ambient_noise_enabled`: ambient noise level on/off
     /// - `watch_audio_classification_enabled`: audio label classification on/off
     /// - `watch_audio_duty_cycle_enabled`, `watch_audio_active_duration`,

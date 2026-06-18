@@ -3,6 +3,7 @@ import SwiftUI
 import WatchConnectivity
 
 import com_awareframework_ios_core
+import com_awareframework_ios_sensor_applewatch_shared
 import com_awareframework_ios_sensor_applewatch_watchOS
 
 // [Change 1] Keys for persisting recording state and sensor toggles in UserDefaults
@@ -16,6 +17,7 @@ private enum UDKey {
     static let healthKit      = "watch_example_healthKitEnabled"
     static let location       = "watch_example_locationEnabled"
     static let audio          = "watch_example_audioEnabled"
+    static let backgroundSessionType = "watch_example_backgroundSessionType"
 }
 
 @MainActor
@@ -42,6 +44,9 @@ final class WatchSensorController: NSObject, ObservableObject {
     }
     @Published var audioEnabled: Bool {
         didSet { UserDefaults.standard.set(audioEnabled, forKey: UDKey.audio) }
+    }
+    @Published var backgroundSessionType: AWBackgroundSessionType {
+        didSet { UserDefaults.standard.set(backgroundSessionType.rawValue, forKey: UDKey.backgroundSessionType) }
     }
     @Published var isPhoneReachable = false
     @Published var statusMessage = "Ready"
@@ -101,6 +106,9 @@ final class WatchSensorController: NSObject, ObservableObject {
         healthKitEnabled = ud.bool(forKey: UDKey.healthKit)
         locationEnabled  = ud.bool(forKey: UDKey.location)
         audioEnabled     = ud.bool(forKey: UDKey.audio)
+        backgroundSessionType = AWBackgroundSessionType(
+            rawValueOrDefault: ud.string(forKey: UDKey.backgroundSessionType)
+        )
         super.init()
     }
 
@@ -123,6 +131,9 @@ final class WatchSensorController: NSObject, ObservableObject {
                 if let v = settings["watch_healthkit_enabled"] as? Bool { self.healthKitEnabled = v }
                 if let v = settings["watch_location_enabled"] as? Bool { self.locationEnabled = v }
                 if let v = settings["watch_audio_enabled"] as? Bool { self.audioEnabled = v }
+                if let v = settings["watch_background_session_type"] as? String {
+                    self.backgroundSessionType = AWBackgroundSessionType(rawValueOrDefault: v)
+                }
                 if let v = settings["motion_sensor_hz"] as? Int { self.motion.CONFIG.motionSensorHz = v }
                 if let v = settings["watch_motion_accelerometer_enabled"] as? Bool { self.motion.CONFIG.activateAccelerometerSensor = v }
                 if let v = settings["watch_motion_device_motion_enabled"] as? Bool { self.motion.CONFIG.activateDeviceMotionSensor = v }
@@ -147,7 +158,7 @@ final class WatchSensorController: NSObject, ObservableObject {
         AWSensorManager.shared.requestPermissionNotification { _, _ in }
         AWSensorManager.shared.set(sensors: sensors) {
             AWSensorManager.shared.requestPermissionHealthKit { _, _ in }
-            AWSensorManager.shared.start(useWorkoutSession: self.healthKitEnabled) {
+            AWSensorManager.shared.start(backgroundSessionType: self.backgroundSessionType) {
                 Task { @MainActor in
                     self.statusMessage = "\(sensors.count) sensors running"
                     self.updateReachability()

@@ -6,7 +6,7 @@
 **AWARE-watchOS** is a passive wearable sensing framework for watchOS. This framework allows us to continually collect multiple sensor data on smartwatches with a minimum workload. Especially, this framework collects eight sensors on the smartwatch and transfers the collected data as zlib-compressed JSON chunks to the paired iPhone via WatchConnectivity. The transferred data is managed on an eco-system of the AWARE framework. Moreover, as an option, data can be stored or streamed in the paired smartphone application.
 
 ### Supported sensors
-The latest version of the framework supports the following sensors: 
+The latest version of the framework supports the following sensors:
 * Accelerometer
 * Barometer
 * Battery
@@ -34,8 +34,8 @@ The following figure illustrates the design of this framework. This framework is
 ![design](/images/aware-watch.png)
 
 ### Battery consumption
-Battery consumption is dependent on the types and settings of sensors. 
-Our lab study shows that this framework works for 16 to 29 hours with single sensors. High-sampling rate and more extensive data size generated sensors tend to consume battery. 
+Battery consumption is dependent on the types and settings of sensors.
+Our lab study shows that this framework works for 16 to 29 hours with single sensors. High-sampling rate and more extensive data size generated sensors tend to consume battery.
 
 ![battery_consumption](/images/battery_full.png)
 
@@ -44,7 +44,7 @@ For more detailes, please check out the paper as follows:
 
 
 ## Requirements
-iOS 16 or later (iPhone target)  
+iOS 16 or later (iPhone target)
 watchOS 8 or later (Apple Watch target)
 
 ## Installation
@@ -53,7 +53,7 @@ You can integrate this framework into your project via Swift Package Manager (Sw
 
 ### SwiftPM
 1. Open Package Manager Windows
-    * Open `Xcode` -> Select `Menu Bar` -> `File` -> `App Package Dependencies...` 
+    * Open `Xcode` -> Select `Menu Bar` -> `File` -> `App Package Dependencies...`
 
 2. Find the package using the manager
     * Select `Search Package URL` and type `https://github.com/awareframework/com.awareframework.ios.sensor.applewatch.git`
@@ -66,64 +66,81 @@ You can integrate this framework into your project via Swift Package Manager (Sw
 To enable background sensing on Apple Watch, you need to change **Capability** and **background mode** settings on Xcode.
 
 ### Capability
-Please add `Background Modes` and `HealthKit` on **Signing & Capabilities** tab using **+ Capability** button.  
+Please add `Background Modes` and `HealthKit` on **Signing & Capabilities** tab using **+ Capability** button.
 
 ![background_mode](/images/background_modes.png)
 
 
 ### Info.plist
-In addition, please add pairs of Key and Value into `WatchOS Target Properties` if you need. 
+In addition, please add pairs of Key and Value into `WatchOS Target Properties` if you need.
 The required pairs of Key and Value depend on what you are going to use in your application.
 
 ![info.plist](/images/info_plist.png)
 
 
-## Sensor configuration
+## Sensor Configuration
 
 ### AWMotionSensor.Config (watchOS)
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `motionSensorHz` | `Int` | `10` | Sampling rate in Hz |
-| `saveIntervalSeconds` | `Int` | `10` | How often buffered records are flushed to the database |
-| `activateAccelerometerSensor` | `Bool` | `true` | Enable raw accelerometer data collection |
-| `activateGyroscopeSensor` | `Bool` | `true` | Enable gyroscope data collection |
-| `activateMagnetometerSensor` | `Bool` | `true` | Enable magnetometer data collection |
-| `activateDeviceMotionSensor` | `Bool` | `true` | Enable device-motion (attitude, gravity, rotation rate) data collection |
+Class to hold the configuration of the sensor.
+
+#### Fields
+
++ `motionSensorHz: Int`: Sampling rate in Hz. (default = `10`)
++ `saveIntervalSeconds: Int`: How often buffered records are flushed to the database. (default = `10`)
++ `activateAccelerometerSensor: Bool`: Enable raw accelerometer data collection. (default = `true`)
++ `activateGyroscopeSensor: Bool`: Enable gyroscope data collection. (default = `true`)
++ `activateMagnetometerSensor: Bool`: Enable magnetometer data collection. (default = `true`)
++ `activateDeviceMotionSensor: Bool`: Enable device-motion (attitude, gravity, rotation rate) data collection. (default = `true`)
 
 Each sub-sensor can be toggled independently. Fields for a disabled sub-sensor are stored as `0` in the database.
 
 ### AWAudioSensor.Config (watchOS)
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `activateAmbientNoiseSensor` | `Bool` | `false` | Enable decibel level measurement |
-| `activateAudioClassificationSensor` | `Bool` | `false` | Enable sound label classification via SoundAnalysis |
-| `dutyCycleEnabled` | `Bool` | `true` | Enable duty cycle control: audio analysis pauses during the rest phase while the microphone tap stays active |
-| `activeDuration` | `TimeInterval` | `60` | Duration of the active processing phase in seconds |
-| `restDuration` | `TimeInterval` | `180` | Duration of the rest (paused) phase in seconds |
-| `storeOnlyTopK` | `Int?` | `nil` | Store only the top-K classifications by confidence; `nil` stores all |
+Class to hold the configuration of the sensor.
+
+#### Fields
+
++ `activateAmbientNoiseSensor: Bool`: Enable decibel level measurement. (default = `false`)
++ `activateAudioClassificationSensor: Bool`: Enable sound label classification via SoundAnalysis. (default = `false`)
++ `dutyCycleEnabled: Bool`: Enable duty cycle control; audio analysis pauses during the rest phase while the microphone tap stays active. (default = `true`)
++ `activeDuration: TimeInterval`: Duration of the active processing phase in seconds. (default = `60`)
++ `restDuration: TimeInterval`: Duration of the rest phase in seconds. (default = `180`)
++ `storeOnlyTopK: Int?`: Store only the top-K classifications by confidence. `nil` stores all. (default = `nil`)
 
 Call `currentDutyCycleStatus()` to query the current phase (`active` or `rest`) and the time at which the phase ends.
 
 ### AppleWatchSensor.Config (iOS)
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `motionSensorHz` | `Int` | `10` | Motion sampling rate sent to the Watch |
-| `watchMotionAccelerometerEnabled` | `Bool` | `true` | Enable accelerometer on the Watch |
-| `watchMotionDeviceMotionEnabled` | `Bool` | `true` | Enable device motion on the Watch |
-| `watchAudioAmbientNoiseEnabled` | `Bool` | `true` | Enable ambient noise level processing on the Watch |
-| `watchAudioClassificationEnabled` | `Bool` | `true` | Enable audio label classification on the Watch |
-| `watchAudioDutyCycleEnabled` | `Bool` | `true` | Enable duty cycle audio processing on the Watch |
-| `watchAudioActiveDuration` | `TimeInterval` | `60` | Watch audio active phase duration in seconds |
-| `watchAudioRestDuration` | `TimeInterval` | `180` | Watch audio rest phase duration in seconds |
-| `fileTransferIntervalSeconds` | `Double` | `900` | How often Watch data is transferred to the iPhone |
-| `watchMotionEnabled` | `Bool` | `true` | Enable the motion sensor on the Watch |
-| `watchBatteryEnabled` | `Bool` | `true` | Enable the battery sensor on the Watch |
-| `watchAudioEnabled` | `Bool` | `false` | Enable the audio/noise sensor on the Watch |
+Class to hold the configuration of the sensor.
+
+#### Fields
+
++ `motionSensorHz: Int`: Motion sampling rate sent to the Watch. (default = `10`)
++ `watchMotionAccelerometerEnabled: Bool`: Enable accelerometer on the Watch. (default = `true`)
++ `watchMotionDeviceMotionEnabled: Bool`: Enable device motion on the Watch. (default = `true`)
++ `watchAudioAmbientNoiseEnabled: Bool`: Enable ambient noise level processing on the Watch. (default = `true`)
++ `watchAudioClassificationEnabled: Bool`: Enable audio label classification on the Watch. (default = `true`)
++ `watchAudioDutyCycleEnabled: Bool`: Enable duty cycle audio processing on the Watch. (default = `true`)
++ `watchAudioActiveDuration: TimeInterval`: Watch audio active phase duration in seconds. (default = `60`)
++ `watchAudioRestDuration: TimeInterval`: Watch audio rest phase duration in seconds. (default = `180`)
++ `fileTransferIntervalSeconds: Double`: How often Watch data is transferred to the iPhone. (default = `900`)
++ `watchMotionEnabled: Bool`: Enable the motion sensor on the Watch. (default = `true`)
++ `watchBatteryEnabled: Bool`: Enable the battery sensor on the Watch. (default = `true`)
++ `watchAudioEnabled: Bool`: Enable the audio/noise sensor on the Watch. (default = `false`)
++ `watchBackgroundSessionType: AWBackgroundSessionType`: Background runtime source for the Watch app: `.none`, `.workout`, or `.microphone`. (default = `.microphone`)
 
 These values are included in the settings dictionary sent to the Watch via `get_settings`. Apply them manually in `applyiPhoneSettings()` as shown in the code examples below.
+
+### Background session type
+
+`AWSensorManager` can keep the Watch app active using one of three modes:
+
+| Mode | Description |
+|------|-------------|
+| `.none` | Does not start a background runtime session. Use only when foreground collection is enough. |
+| `.workout` | Starts an `HKWorkoutSession` with activity type `.other`. This can appear as an exercise/workout session in Apple fitness surfaces and should not be used when no workout history must remain. |
+| `.microphone` | Starts a no-op microphone capture session for background audio runtime. It does not save audio or ambient-noise records unless `AWAudioSensor` itself is enabled. Requires microphone permission and the audio background mode. |
 
 ## Development
 The following source code shows a minimum sample code for collecting sensor data on a smartwatch. A developer has to write source codes on both iOS and wathcOS as follows.
@@ -135,7 +152,7 @@ import com_awareframework_ios_sensor_applewatch
 ```
 
 ```swift
-let appleWatch = AppleWatchSensor(AppleWatchSensor.Config().apply{config in
+let appleWatch = AppleWatchSensor(AppleWatchSensor.Config().apply { config in
     config.debug = true
 })
 
@@ -153,7 +170,7 @@ import com_awareframework_ios_sensor_applewatch
 ```
 
 ```swift
-let motionSensor = AWMotionSensor.shared.start(AWMotionSensor.Config().apply{config in
+let motionSensor = AWMotionSensor.shared.start(AWMotionSensor.Config().apply { config in
     config.motionSensorHz = 50
     config.debug = true
 })
@@ -222,13 +239,11 @@ An optional `deleteAfterTransfer` flag causes transferred records to be deleted 
 
 ### Configuration
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `recordsPerChunk` | `Int` | `500` | Number of sensor records packed into each compressed chunk |
-| `useColumnarFormat` | `Bool` | `true` | Encode JSON in columnar format (smaller payload) |
-| `transferMode` | `AWTransferMode` | `.all` | Transfer all records or only new records since the last successful transfer |
-| `deleteAfterTransfer` | `Bool` | `false` | Delete transferred records from the watch-side database after all transfers complete |
-| `debug` | `Bool` | `false` | Print verbose progress logs to the console |
++ `recordsPerChunk: Int`: Number of sensor records packed into each compressed chunk. (default = `500`)
++ `useColumnarFormat: Bool`: Encode JSON in columnar format (smaller payload). (default = `true`)
++ `transferMode: AWTransferMode`: Transfer all records or only new records since the last successful transfer. (default = `.all`)
++ `deleteAfterTransfer: Bool`: Delete transferred records from the watch-side database after all transfers complete. (default = `false`)
++ `debug: Bool`: Print verbose progress logs to the console. (default = `false`)
 
 ```swift
 AWDataTransferManager.shared.recordsPerChunk = 1000
