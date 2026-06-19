@@ -538,6 +538,19 @@ appleWatch.dbEngine?.startSync(DbSyncConfig().apply { config in
 })
 ```
 
+## Related Links
+
+- [WatchConnectivity | Apple Developer Documentation](https://developer.apple.com/documentation/watchconnectivity)
+- [WCSession | Apple Developer Documentation](https://developer.apple.com/documentation/watchconnectivity/wcsession)
+- [HealthKit | Apple Developer Documentation](https://developer.apple.com/documentation/healthkit)
+- [HKWorkoutSession | Apple Developer Documentation](https://developer.apple.com/documentation/healthkit/hkworkoutsession)
+- [Core Motion | Apple Developer Documentation](https://developer.apple.com/documentation/coremotion)
+- [AVAudioSession | Apple Developer Documentation](https://developer.apple.com/documentation/avfaudio/avaudiosession)
+- [SoundAnalysis | Apple Developer Documentation](https://developer.apple.com/documentation/soundanalysis)
+- [Core Bluetooth | Apple Developer Documentation](https://developer.apple.com/documentation/corebluetooth)
+- [Core Location | Apple Developer Documentation](https://developer.apple.com/documentation/corelocation)
+- [WatchKit | Apple Developer Documentation](https://developer.apple.com/documentation/watchkit)
+
 ## Author
 
 Yuuki Nishiyama (The University of Tokyo), nishiyama@csis.u-tokyo.ac.jp
