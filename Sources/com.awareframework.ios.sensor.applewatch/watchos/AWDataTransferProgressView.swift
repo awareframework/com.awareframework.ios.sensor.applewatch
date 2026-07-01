@@ -34,7 +34,7 @@ public struct AWDataTransferProgressView: View {
                 // ── State label ──────────────────────────────────────────────
                 HStack {
                     stateIcon
-                    Text(manager.state.displayText)
+                    Text(verbatim: manager.state.displayText)
                         .font(.headline)
                         .lineLimit(2)
                 }
@@ -48,14 +48,14 @@ public struct AWDataTransferProgressView: View {
                         .animation(.easeInOut(duration: 0.4), value: manager.overallProgress)
 
                     HStack {
-                        Text("\(Int(manager.overallProgress * 100)) %")
+                        Text(verbatim: "\(Int(manager.overallProgress * 100)) %")
                             .font(.caption)
                             .foregroundColor(.secondary)
 
                         Spacer()
 
                         if manager.totalChunks > 0 {
-                            Text("\(manager.completedChunks) / \(manager.totalChunks) チャンク")
+                            Text(verbatim: "\(manager.completedChunks) / \(manager.totalChunks) チャンク")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -73,7 +73,7 @@ public struct AWDataTransferProgressView: View {
                 // ── Error message ────────────────────────────────────────────
                 if let error = manager.lastError {
                     Divider()
-                    Text(error)
+                    Text(verbatim: error)
                         .font(.caption2)
                         .foregroundColor(.red)
                         .multilineTextAlignment(.leading)
@@ -148,7 +148,7 @@ private struct AWTransferItemRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(shortName)
+            Text(verbatim: shortName)
                 .font(.caption2)
                 .foregroundColor(.primary)
                 .lineLimit(1)
@@ -159,7 +159,7 @@ private struct AWTransferItemRow: View {
             HStack(spacing: 4) {
                 statusBadge
                 Spacer()
-                Text("\(Int(item.progress * 100)) %")
+                Text(verbatim: "\(Int(item.progress * 100)) %")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
@@ -235,7 +235,7 @@ public struct AWDataTransferBadge: View {
             }
 
             if manager.state.isActive {
-                Text("\(Int(manager.overallProgress * 100))%")
+                Text(verbatim: "\(Int(manager.overallProgress * 100))%")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
