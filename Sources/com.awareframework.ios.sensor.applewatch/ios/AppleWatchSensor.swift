@@ -18,6 +18,10 @@ public class AppleWatchSensor: AwareSensor {
     private var lastCommunicationMessageAt: Date?
     private var lastFileTransferAt: Date?
     private var lastCommunicationError: String?
+    private let fileProcessingQueue = DispatchQueue(
+        label: "com.awareframework.ios.sensor.applewatch.file-processing",
+        qos: .utility
+    )
     private let receivedDataSaveQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch.received-data-save", qos: .utility)
     
     public class Config:SensorConfig{
@@ -50,8 +54,9 @@ public class AppleWatchSensor: AwareSensor {
         public var watchAudioActiveDuration: TimeInterval = 60
         public var watchAudioRestDuration: TimeInterval = 180
 
-        /// Called on the main thread whenever a chunk sent by `AWDataTransferManager`
-        /// (watchOS) is received and decompressed successfully.
+        /// Called whenever a chunk sent by `AWDataTransferManager` (watchOS) is
+        /// received and decompressed successfully. The handler may be called off
+        /// the main thread.
         ///
         /// - Parameters:
         ///   - tableName:   The SQLite table the records originate from (e.g. `"ios_watch_motion"`).
@@ -489,9 +494,7 @@ public class AppleWatchSensor: AwareSensor {
 
             print("[AWDataTransfer] received: table=\(tableName) chunk=\(chunkIndex)/\(totalChunks) rows=\(records.count)")
 
-            DispatchQueue.main.async { [weak self] in
-                self?.CONFIG.receivedDataHandler?(tableName, chunkIndex, totalChunks, records)
-            }
+            CONFIG.receivedDataHandler?(tableName, chunkIndex, totalChunks, records)
 
             notifyFileTransferStatus(
                 metadata: metadata,
@@ -595,6 +598,8 @@ public class AppleWatchSensor: AwareSensor {
         state: String,
         errorMessage: String?
     ) {
+        guard CONFIG.fileTransferStatusHandler != nil else { return }
+
         let tableName = tableName(from: metadata, fileName: fileName)
         let chunkIndex = int(from: metadata?["globalChunkIndex"])
             ?? int(from: metadata?["chunkIndex"])
@@ -1351,13 +1356,24 @@ extension AppleWatchSensor: WCSessionDelegate  {
     }
     
     public func session(_ session: WCSession, didReceive file: WCSessionFile) {
-        didReceive(file: file)
-        
-        WCSession.default.sendMessage(["event_name":"file_transfer_completion",
-                                       "file_path":file.fileURL.lastPathComponent])
-        { respMsg in
-            print("\(#function): \(respMsg.debugDescription)")
+        let fileName = file.fileURL.lastPathComponent
+        fileProcessingQueue.async { [weak self] in
+            self?.didReceive(file: file)
         }
+
+        guard session.isReachable else { return }
+        session.sendMessage(
+            [
+                "event_name": "file_transfer_completion",
+                "file_path": fileName,
+            ],
+            replyHandler: { [weak self] _ in
+                self?.lastCommunicationMessageAt = Date()
+            },
+            errorHandler: { [weak self] error in
+                self?.lastCommunicationError = error.localizedDescription
+            }
+        )
     }
     
     public func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
