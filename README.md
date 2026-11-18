@@ -50,18 +50,19 @@ watchOS 8 or later (Apple Watch target)
 
 ## Installation
 
-You can integrate this framework into your project via Swift Package Manager (SwiftPM).
+Add the package with Swift Package Manager:
 
-### SwiftPM
-1. Open Package Manager Windows
-    * Open `Xcode` -> Select `Menu Bar` -> `File` -> `App Package Dependencies...`
+- Package URL: `https://github.com/awareframework/com.awareframework.ios.sensor.applewatch.git`
+- Product: `com.awareframework.ios.sensor.applewatch`
+- Module: `import com_awareframework_ios_sensor_applewatch`
 
-2. Find the package using the manager
-    * Select `Search Package URL` and type `https://github.com/awareframework/com.awareframework.ios.sensor.applewatch.git`
+See the [core package README](https://github.com/awareframework/com.awareframework.ios.core#installation) for the Xcode, `Package.swift` and command-line installation steps.
 
-3. Import package both `iOS` and `watchOS` targets.
+**Targets:** add the package to both the **iOS app** and the **watchOS app** targets.
 
+**Info.plist:** see [Info.plist](#infoplist) below for the keys needed by the iOS and watchOS apps.
 
+**Capabilities:** add **Background Modes** and **HealthKit** to the watchOS app (see [Capability](#capability) below).
 
 ## Permissions
 To enable background sensing on Apple Watch, you need to change **Capability** and **background mode** settings on Xcode.
