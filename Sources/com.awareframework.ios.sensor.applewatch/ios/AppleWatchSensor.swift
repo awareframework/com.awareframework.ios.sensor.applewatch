@@ -179,22 +179,8 @@ public class AppleWatchSensor: AwareSensor {
         tableCount: Int,
         completionHandler: DbSyncCompletionHandler?
     ) -> DbSyncConfig {
-        let syncConfig = DbSyncConfig()
-        syncConfig.removeAfterSync = baseConfig.removeAfterSync
-        syncConfig.batchSize = baseConfig.batchSize
-        syncConfig.markAsSynced = baseConfig.markAsSynced
-        syncConfig.skipSyncedData = baseConfig.skipSyncedData
-        syncConfig.keepLastData = baseConfig.keepLastData
-        syncConfig.deviceId = baseConfig.deviceId
-        syncConfig.debug = baseConfig.debug
-        syncConfig.debugLevel = baseConfig.debugLevel
+        let syncConfig = baseConfig.copy()
         syncConfig.dispatchQueue = DispatchQueue(label: "com.awareframework.ios.sensor.applewatch.sync.queue.\(tableIndex)")
-        syncConfig.backgroundSession = baseConfig.backgroundSession
-        syncConfig.compactDataFormat = baseConfig.compactDataFormat
-        syncConfig.serverType = baseConfig.serverType
-        syncConfig.studyNumber = baseConfig.studyNumber
-        syncConfig.studyKey = baseConfig.studyKey
-        syncConfig.test = baseConfig.test
         syncConfig.progressHandler = { progress, error in
             let tableWeight = 1.0 / Double(max(tableCount, 1))
             let overallProgress = (Double(tableIndex) * tableWeight) + (progress * tableWeight)
