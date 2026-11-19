@@ -477,19 +477,20 @@ AWWCSessionManager.shared.applyiPhoneSettings { settings in
 
 #### Table names
 
-Each sensor stores its data in a named table in the local SQLite database on the Watch.  The same table name is used when uploading to the AWARE server.
+Each sensor stores its data in a named table in the local SQLite database on the Watch. The iPhone (`AppleWatchSensor`) stores the rows it receives in a table with the same name in `aware_apple_watch.sqlite`, and the same name is used when uploading to the AWARE server. (Files from versions that used the older names, such as `watch_motion`, are still accepted and stored under the current names.)
 
 | Sensor | Table name |
 |--------|-----------|
-| Motion (acc, gyro, gravity …) | `watch_motion` |
-| Ambient noise | `watch_ambient_noise` |
-| Sound classification | `watch_audio_label` |
-| HealthKit (heart rate) | `watch_healthkit` |
-| Battery | `watch_battery` |
-| Bluetooth | `watch_bluetooth` |
-| Location | `watch_location` |
-| Heading | `watch_heading` |
-| Device info | `watch_device` |
+| Motion (acc, gyro, gravity …) | `ios_watch_motion` |
+| Ambient noise | `ios_watch_ambient_noise` |
+| Sound classification | `ios_watch_audio_label` |
+| HealthKit (heart rate) | `ios_watch_heart_rate` |
+| Battery | `ios_watch_battery` |
+| Bluetooth | `ios_watch_bluetooth` |
+| Location | `ios_watch_location` |
+| Heading | `ios_watch_heading` |
+| Device info | `ios_watch_device` |
+| UWB (`AWUWBSensor` in `com.awareframework.ios.sensor.uwb`) | `ios_watch_uwb` |
 
 ### Option B — Upload from the paired iPhone
 

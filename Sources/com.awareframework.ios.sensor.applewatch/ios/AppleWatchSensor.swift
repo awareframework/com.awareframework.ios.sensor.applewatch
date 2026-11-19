@@ -3,6 +3,7 @@
 import Foundation
 import WatchConnectivity
 import com_awareframework_ios_core
+import com_awareframework_ios_sensor_uwb_shared
 import com_awareframework_ios_sensor_applewatch_shared
 import DataCompression
 
@@ -365,6 +366,7 @@ public class AppleWatchSensor: AwareSensor {
         try? AWDeviceSensorData.createTable(queue: queue)
         AWAmbientNoiseData.createTable(queue: queue)
         try? AWAudioLabelData.createTable(queue: queue)
+        try? AWUWBData.createTable(queue: queue)
     }
 
     
@@ -649,6 +651,7 @@ public class AppleWatchSensor: AwareSensor {
         AWDeviceSensorData.databaseTableName,
         AWAmbientNoiseData.databaseTableName,
         AWAudioLabelData.databaseTableName,
+        AWUWBData.databaseTableName,
     ]
 
     private static let legacyWatchTableNameMap = [
@@ -663,7 +666,7 @@ public class AppleWatchSensor: AwareSensor {
         "watch_audio_label": AWAudioLabelData.databaseTableName,
     ]
 
-    private func watchModels(
+    func watchModels(
         tableName: String,
         records: [[String: Any]]
     ) -> [any BaseDbModelSQLite]? {
@@ -688,17 +691,21 @@ public class AppleWatchSensor: AwareSensor {
             return normalizedRecords.map { AWAmbientNoiseData($0) as any BaseDbModelSQLite }
         case AWAudioLabelData.databaseTableName:
             return normalizedRecords.map { AWAudioLabelData($0) as any BaseDbModelSQLite }
+        case AWUWBData.databaseTableName:
+            return normalizedRecords.map { AWUWBData($0) as any BaseDbModelSQLite }
         default:
             return nil
         }
     }
 
-    private func normalizedRecord(_ record: [String: Any]) -> [String: Any] {
+    /// Numbers are kept as `NSNumber`, which the models read as `Int64`, `Int`, `Double` or `Bool`.
+    ///
+    /// Up to 1.6.2 a number with no fractional part was turned into a Swift `Int64`. A model reads a
+    /// `Double` field with `as? Double`, which fails on an `Int64`, so values such as a heart rate of
+    /// 72.0 or a distance of 2.0 m were saved as the model's default (0 or -1), and booleans as false.
+    func normalizedRecord(_ record: [String: Any]) -> [String: Any] {
         record.mapValues { value in
-            guard let number = value as? NSNumber else { return value }
-            let doubleValue = number.doubleValue
-            let int64Value = number.int64Value
-            return doubleValue == Double(int64Value) ? int64Value : doubleValue
+            (value as? NSNumber) ?? value
         }
     }
 
