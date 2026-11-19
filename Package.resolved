@@ -1,5 +1,5 @@
 {
-  "originHash" : "13a69912144e0890eb1be68435172f6e85152ed9e6167e44fd0cd1eef370859a",
+  "originHash" : "36d559005a6616d425c1ff29003dd71e49625f55cd49dc57c3ba07b179c6f23f",
   "pins" : [
     {
       "identity" : "com.awareframework.ios.core",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "3a114b8bca8ad9ea2dd3d0fb161ec61d00bc8fb0",
         "version" : "1.6.3"
+      }
+    },
+    {
+      "identity" : "com.awareframework.ios.sensor.uwb",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/awareframework/com.awareframework.ios.sensor.uwb.git",
+      "state" : {
+        "revision" : "14ed6dde854e899fa38041d3d13d668f8b56c2fb",
+        "version" : "1.6.1"
       }
     },
     {
