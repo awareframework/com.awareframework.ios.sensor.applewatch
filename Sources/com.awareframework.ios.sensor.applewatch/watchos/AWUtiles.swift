@@ -8,7 +8,7 @@
 
 import Accelerate
 import SoundAnalysis
-import DataCompression
+import com_awareframework_ios_sensor_applewatch_shared
 import WatchConnectivity
 
 //https://betterprogramming.pub/audio-visualization-in-swift-using-metal-accelerate-part-1-390965c095d7
@@ -133,7 +133,7 @@ public class FileTransferManager {
                         let docsDirect = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                     
                         let compressedFileURL = docsDirect.appendingPathComponent(compressedFileName)
-                        try d.compress(withAlgorithm: .zlib)?.write(to: compressedFileURL)
+                        try AWCompression.compress(d).write(to: compressedFileURL)
                         
                         if debug {
                             print("\(fileURL.lastPathComponent): \(self.getFileSize(path: fileURL.path)) -> \(self.getFileSize(path: compressedFileURL.path))")

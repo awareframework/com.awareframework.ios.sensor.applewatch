@@ -75,4 +75,29 @@ class Tests: XCTestCase {
             .setTableName(AWUWBData.databaseTableName).build()
         XCTAssertEqual(reader.fetch(filter: nil, limit: nil)?.first?["distance"] as? Double, 2.0, "read back for sync")
     }
+
+    // MARK: - Compression of the files sent from the watch
+
+    /// A raw deflate stream (RFC 1951, no header), the format the watch has sent since before 1.7.1
+    /// (DataCompression's `.zlib`). Made with Python: zlib.compressobj(9, zlib.DEFLATED, -15).
+    private let rawDeflateFromOlderWatch = "i65WykhNLCoJSixJVbIyN9JRKsnMTS0uScwtULIyNDdAgNpYAA=="
+    private let rawDeflateText = #"[{"heartRate":72,"timestamp":1700000000000}]"#
+
+    func testFilesFromAnOlderWatchStillDecompress() throws {
+        let data = try XCTUnwrap(Data(base64Encoded: rawDeflateFromOlderWatch))
+        XCTAssertEqual(String(decoding: try AWCompression.decompress(data), as: UTF8.self), rawDeflateText)
+    }
+
+    func testCompressionRoundTripsAndWritesRawDeflate() throws {
+        let json = Data(String(repeating: rawDeflateText, count: 1_000).utf8)
+        let compressed = try AWCompression.compress(json)
+        XCTAssertLessThan(compressed.count, json.count / 10)
+        XCTAssertEqual(try AWCompression.decompress(compressed), json)
+        // No zlib header (0x78 ..): an iPhone on 1.7.0 or earlier decodes it as raw deflate
+        XCTAssertNotEqual(compressed.first, 0x78)
+    }
+
+    func testBrokenDataThrows() {
+        XCTAssertThrowsError(try AWCompression.decompress(Data("not compressed".utf8)))
+    }
 }
