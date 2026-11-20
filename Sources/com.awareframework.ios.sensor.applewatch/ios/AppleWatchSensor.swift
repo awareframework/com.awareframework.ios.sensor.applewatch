@@ -5,7 +5,6 @@ import WatchConnectivity
 import com_awareframework_ios_core
 import com_awareframework_ios_sensor_uwb_shared
 import com_awareframework_ios_sensor_applewatch_shared
-import DataCompression
 
 public class AppleWatchSensor: AwareSensor {
     
@@ -408,7 +407,7 @@ public class AppleWatchSensor: AwareSensor {
         // Legacy / other file handling.
         do {
             let data = try Data(contentsOf: newPath)
-            if let decompressedData = data.decompress(withAlgorithm: .zlib) {
+            if let decompressedData = try? AWCompression.decompress(data) {
                 if CONFIG.keepOriginalFileFromWatch {
                     var originalFilePath = newPath.lastPathComponent
                     if let theRange = originalFilePath.range(of: ".zlib") {
@@ -440,9 +439,12 @@ public class AppleWatchSensor: AwareSensor {
 
         do {
             let compressed = try Data(contentsOf: fileURL)
-            guard let decompressed = compressed.decompress(withAlgorithm: .zlib) else {
+            let decompressed: Data
+            do {
+                decompressed = try AWCompression.decompress(compressed)
+            } catch {
                 if CONFIG.debug {
-                    print("\(#function): decompression failed for \(fileURL.lastPathComponent)")
+                    print("\(#function): decompression failed for \(fileURL.lastPathComponent): \(error)")
                 }
                 notifyFileTransferStatus(
                     metadata: metadata,

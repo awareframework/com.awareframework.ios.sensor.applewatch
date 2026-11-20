@@ -1,5 +1,5 @@
 {
-  "originHash" : "36d559005a6616d425c1ff29003dd71e49625f55cd49dc57c3ba07b179c6f23f",
+  "originHash" : "6dca45f9fb685e919da5a43431495fc079d6796a72bbcce4964052cb886a774e",
   "pins" : [
     {
       "identity" : "com.awareframework.ios.core",
@@ -17,15 +17,6 @@
       "state" : {
         "revision" : "14ed6dde854e899fa38041d3d13d668f8b56c2fb",
         "version" : "1.6.1"
-      }
-    },
-    {
-      "identity" : "datacompression",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/mw99/DataCompression.git",
-      "state" : {
-        "revision" : "16f858982a077451ce3bdbd9144d3073ec85b6e4",
-        "version" : "3.9.0"
       }
     },
     {

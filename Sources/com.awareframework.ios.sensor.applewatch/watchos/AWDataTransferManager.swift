@@ -7,7 +7,7 @@
 
 import Foundation
 import WatchConnectivity
-import DataCompression
+import com_awareframework_ios_sensor_applewatch_shared
 import com_awareframework_ios_core
 
 // MARK: - Transfer mode
@@ -246,8 +246,11 @@ public class AWDataTransferManager: NSObject, ObservableObject {
                             ? toColumnar(safeRows)
                             : safeRows
                         let jsonData = try JSONSerialization.data(withJSONObject: payload)
-                        guard let compressed = jsonData.compress(withAlgorithm: .zlib) else {
-                            if debug { print("[AWDataTransferManager] Compression failed: \(fileName)") }
+                        let compressed: Data
+                        do {
+                            compressed = try AWCompression.compress(jsonData)
+                        } catch {
+                            if debug { print("[AWDataTransferManager] Compression failed: \(fileName): \(error)") }
                             shouldContinue = true
                             return
                         }

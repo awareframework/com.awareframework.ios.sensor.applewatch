@@ -17,7 +17,6 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/awareframework/com.awareframework.ios.core.git", from: "1.6.3"),
-        .package(url: "https://github.com/mw99/DataCompression.git", from: "3.8.0"),
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.3.0"),
         // AWUWBData: UWB rows recorded on the watch (AWUWBSensor) and received on the iPhone
         .package(url: "https://github.com/awareframework/com.awareframework.ios.sensor.uwb.git", from: "1.6.1"),
@@ -28,7 +27,6 @@ let package = Package(
             name: "com.awareframework.ios.sensor.applewatch.shared",
             dependencies: [
                 .product(name: "com.awareframework.ios.core", package: "com.awareframework.ios.core"),
-                .product(name: "DataCompression", package: "DataCompression"),
                 .product(name: "GRDB", package: "GRDB.swift"),
             ],
             path: "Sources/com.awareframework.ios.sensor.applewatch/shared"
@@ -39,7 +37,6 @@ let package = Package(
             dependencies: [
                 .product(name: "com.awareframework.ios.core", package: "com.awareframework.ios.core"),
                 "com.awareframework.ios.sensor.applewatch.shared",  // shared依存を追加
-                .product(name: "DataCompression", package: "DataCompression"),
                 .product(name: "com.awareframework.ios.sensor.uwb", package: "com.awareframework.ios.sensor.uwb")
             ],
             path: "Sources/com.awareframework.ios.sensor.applewatch/ios"
@@ -50,7 +47,6 @@ let package = Package(
             dependencies: [
                 .product(name: "com.awareframework.ios.core", package: "com.awareframework.ios.core"),
                 "com.awareframework.ios.sensor.applewatch.shared",  // shared依存を追加
-                .product(name: "DataCompression", package: "DataCompression")
             ],
             path: "Sources/com.awareframework.ios.sensor.applewatch/watchos"
         ),
