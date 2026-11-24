@@ -50,7 +50,7 @@ public class AWDeviceSensor: AwareSensor, ObservableObject {
         super.init()
         self.CONFIG = config
         self.initializeDbEngine(config: config)
-        AWWCSessionManager.shared
+//        AWWCSessionManager.shared
         
         super.syncConfig = DbSyncConfig().apply(closure: { config in
             config.serverType = self.CONFIG.serverType
@@ -81,7 +81,7 @@ public class AWDeviceSensor: AwareSensor, ObservableObject {
                 print(self.TAG, "iOS-> \(deviceId ?? ""), watchOS ->\(AwareUtils.getCommonDeviceId())")
             }
             
-            if let did = deviceId as? String {
+            if let did = deviceId {
                 if let engine = self.dbEngine as? SQLiteEngine{
                     let now = Date.now.timeIntervalSince1970 * 1000
                     let data = AWDeviceSensorData(timestamp: Int64(now),

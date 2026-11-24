@@ -30,6 +30,32 @@ public struct AWAccelerationLinePoint {
     public var z:Double
 }
 
+/// An immutable snapshot handed to the serial save queue for background persistence.
+/// Database serialization is handled by `Engine`; this task never mutates its inputs.
+private final class AWMotionDataSaveTask: @unchecked Sendable {
+    private let engine: Engine?
+    private let records: [AWMotionSensorData]
+    private let debug: Bool
+    private let tag: String
+
+    init(engine: Engine?, records: [AWMotionSensorData], debug: Bool, tag: String) {
+        self.engine = engine
+        self.records = records
+        self.debug = debug
+        self.tag = tag
+    }
+
+    func run() {
+        engine?.save(records)
+        guard debug else { return }
+
+        print(tag, "[Number of Records]", records.count)
+        if let lastRecord = records.last {
+            print(tag, "[Last Record]", lastRecord)
+        }
+    }
+}
+
 public class AWMotionSensor: AwareSensor, ObservableObject {
     
     let motion = CMMotionManager()
@@ -40,6 +66,11 @@ public class AWMotionSensor: AwareSensor, ObservableObject {
     var timer:Timer? = nil
     var lastBreakTime = Date()
     var isRunning = false
+
+    private let saveQueue = DispatchQueue(
+        label: "com.awareframework.ios.sensor.applewatch.motion.save",
+        qos: .utility
+    )
     
     @Published public var accelerations = [AWAccelerationLinePoint]()
     @Published public var motions = [AWRotationLinePoint]()
@@ -214,15 +245,15 @@ public class AWMotionSensor: AwareSensor, ObservableObject {
                 let gap = now.timeIntervalSince(self.lastBreakTime)
                 if (gap > Double(self.CONFIG.saveIntervalSeconds)){
                     let dataArray = Array(self.dataBuffer)
-                    OperationQueue().addOperation({ () -> Void in
-                        self.dbEngine?.save(dataArray)
-                        if (self.CONFIG.debug) {
-                            print(self.TAG, "[Number of Records]", dataArray.count)
-                            if (dataArray.count > 0) {
-                                print(self.TAG , "[Last Record]", dataArray.last)
-                            }
-                        }
-                    });
+                    let saveTask = AWMotionDataSaveTask(
+                        engine: self.dbEngine,
+                        records: dataArray,
+                        debug: self.CONFIG.debug,
+                        tag: self.TAG
+                    )
+                    self.saveQueue.async {
+                        saveTask.run()
+                    }
                     self.dataBuffer.removeAll()
                     self.lastBreakTime = now
                 }
