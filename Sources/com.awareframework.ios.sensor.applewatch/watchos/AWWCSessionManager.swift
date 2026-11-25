@@ -68,20 +68,38 @@ public class AWWCSessionManager: NSObject, WCSessionDelegate{
     public func applyiPhoneSettings(completion: (([String: Any]) -> Void)? = nil) {
         getSettings { settings in
             DispatchQueue.main.async {
-                for sensor in AWSensorManager.shared.sensors {
-                    if let host = settings["db_host"] as? String, !host.isEmpty {
-                        sensor.dbEngine?.config.host = host
-                    }
-                    if let label = settings["label"] as? String {
-                        sensor.set(label: label)
-                    }
-                    if let debug = settings["debug"] as? Bool {
-                        sensor.syncConfig?.debug = debug
-                    }
-                }
+                self.applyCommonSettings(settings)
             }
             completion?(settings)
         }
+    }
+
+    /// Apply `db_host`, `label` and `debug` to every sensor registered in `AWSensorManager.shared`.
+    /// Call it on the main queue.
+    public func applyCommonSettings(_ settings: [String: Any]) {
+        for sensor in AWSensorManager.shared.sensors {
+            if let host = settings["db_host"] as? String, !host.isEmpty {
+                sensor.dbEngine?.config.host = host
+            }
+            if let label = settings["label"] as? String {
+                sensor.set(label: label)
+            }
+            if let debug = settings["debug"] as? Bool {
+                sensor.syncConfig?.debug = debug
+            }
+        }
+    }
+
+    /// Called on the main queue with settings the iPhone pushed (`AppleWatchSensor.pushSettingsToWatch()`),
+    /// after `applyCommonSettings(_:)`. The dictionary has the keys of `applyiPhoneSettings`, and
+    /// `settings_updated_at` (seconds since 1970).
+    public var settingsHandler: (([String: Any]) -> Void)?
+
+    /// The last settings the iPhone pushed. WatchConnectivity keeps them across launches, so an app
+    /// can apply settings pushed while it was not running. Empty when none were pushed.
+    public var receivedSettings: [String: Any] {
+        guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return [:] }
+        return WCSession.default.receivedApplicationContext
     }
     
     public func getPairedDeviceId(_ handler: @escaping ((String?)->Void) ) {
@@ -189,6 +207,15 @@ public class AWWCSessionManager: NSObject, WCSessionDelegate{
         }
     }
     
+    public func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String : Any]) {
+        lastMessageAt = Date()
+        if DEBUG { print("\(#function): \(applicationContext.count) settings") }
+        DispatchQueue.main.async {
+            self.applyCommonSettings(applicationContext)
+            self.settingsHandler?(applicationContext)
+        }
+    }
+
     public func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
         lastMessageAt = Date()
         if DEBUG { print("\(#function): \(message.debugDescription)") }
