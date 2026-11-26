@@ -37,10 +37,10 @@ public class AppleWatchSensor: AwareSensor {
         public var autoSaveReceivedData:Bool = true
 
         // Watch sensor enable/disable flags
-        public var watchMotionEnabled:Bool    = true
-        public var watchBatteryEnabled:Bool   = true
-        public var watchDeviceEnabled:Bool    = true
-        public var watchHealthKitEnabled:Bool = true
+        public var watchMotionEnabled:Bool    = false
+        public var watchBatteryEnabled:Bool   = false
+        public var watchDeviceEnabled:Bool    = false
+        public var watchHealthKitEnabled:Bool = false
         public var watchLocationEnabled:Bool  = false
         public var watchHeadingEnabled:Bool   = false
         public var watchAudioEnabled:Bool     = false
@@ -748,32 +748,7 @@ public class AppleWatchSensor: AwareSensor {
         lastCommunicationMessageAt = Date()
         if let method = message["method"] as? String {
             if (method == "get_settings") {
-                var settings: [String: Any] = [
-                    "motion_sensor_hz": self.CONFIG.motionSensorHz,
-                    "file_transfer_interval_seconds": self.CONFIG.fileTransferIntervalSeconds,
-                    "label": self.CONFIG.label,
-                    "debug": self.CONFIG.debug,
-                    "watch_motion_accelerometer_enabled": self.CONFIG.watchMotionAccelerometerEnabled,
-                    "watch_motion_device_motion_enabled": self.CONFIG.watchMotionDeviceMotionEnabled,
-                    "watch_motion_enabled":    self.CONFIG.watchMotionEnabled,
-                    "watch_battery_enabled":   self.CONFIG.watchBatteryEnabled,
-                    "watch_device_enabled":    self.CONFIG.watchDeviceEnabled,
-                    "watch_healthkit_enabled": self.CONFIG.watchHealthKitEnabled,
-                    "watch_location_enabled":  self.CONFIG.watchLocationEnabled,
-                    "watch_heading_enabled":   self.CONFIG.watchHeadingEnabled,
-                    "watch_audio_enabled":     self.CONFIG.watchAudioEnabled,
-                    "watch_uwb_enabled":       self.CONFIG.watchUWBEnabled,
-                    "watch_bluetooth_enabled": self.CONFIG.watchBluetoothEnabled,
-                    "watch_background_session_type": self.CONFIG.watchBackgroundSessionType.rawValue,
-                    "watch_audio_ambient_noise_enabled": self.CONFIG.watchAudioAmbientNoiseEnabled,
-                    "watch_audio_classification_enabled": self.CONFIG.watchAudioClassificationEnabled,
-                    "watch_audio_duty_cycle_enabled": self.CONFIG.watchAudioDutyCycleEnabled,
-                    "watch_audio_active_duration": self.CONFIG.watchAudioActiveDuration,
-                    "watch_audio_rest_duration": self.CONFIG.watchAudioRestDuration,
-                ]
-                if let host = self.CONFIG.dbHost {
-                    settings["db_host"] = host
-                }
+                let settings = self.watchSettings()
                 replyHandler(settings)
             }else if (method == "get_device_id") {
                 replyHandler(
@@ -793,6 +768,72 @@ public class AppleWatchSensor: AwareSensor {
         }
     }
     
+    /// The settings the watch app applies: replied to `get_settings` and sent by `pushSettingsToWatch()`.
+    public func watchSettings() -> [String: Any] {
+        var settings: [String: Any] = [
+            "motion_sensor_hz": self.CONFIG.motionSensorHz,
+            "file_transfer_interval_seconds": self.CONFIG.fileTransferIntervalSeconds,
+            "label": self.CONFIG.label,
+            "debug": self.CONFIG.debug,
+            "watch_motion_accelerometer_enabled": self.CONFIG.watchMotionAccelerometerEnabled,
+            "watch_motion_device_motion_enabled": self.CONFIG.watchMotionDeviceMotionEnabled,
+            "watch_motion_enabled":    self.CONFIG.watchMotionEnabled,
+            "watch_battery_enabled":   self.CONFIG.watchBatteryEnabled,
+            "watch_device_enabled":    self.CONFIG.watchDeviceEnabled,
+            "watch_healthkit_enabled": self.CONFIG.watchHealthKitEnabled,
+            "watch_location_enabled":  self.CONFIG.watchLocationEnabled,
+            "watch_heading_enabled":   self.CONFIG.watchHeadingEnabled,
+            "watch_audio_enabled":     self.CONFIG.watchAudioEnabled,
+            "watch_uwb_enabled":       self.CONFIG.watchUWBEnabled,
+            "watch_bluetooth_enabled": self.CONFIG.watchBluetoothEnabled,
+            "watch_background_session_type": self.CONFIG.watchBackgroundSessionType.rawValue,
+            "watch_audio_ambient_noise_enabled": self.CONFIG.watchAudioAmbientNoiseEnabled,
+            "watch_audio_classification_enabled": self.CONFIG.watchAudioClassificationEnabled,
+            "watch_audio_duty_cycle_enabled": self.CONFIG.watchAudioDutyCycleEnabled,
+            "watch_audio_active_duration": self.CONFIG.watchAudioActiveDuration,
+            "watch_audio_rest_duration": self.CONFIG.watchAudioRestDuration,
+        ]
+        if let host = self.CONFIG.dbHost {
+            settings["db_host"] = host
+        }
+        return settings
+    }
+
+    /// The key of the time (seconds since 1970) a pushed settings dictionary was made. The watch applies
+    /// pushed settings only when they are newer than the ones it applied last.
+    public static let settingsUpdatedAtKey = "settings_updated_at"
+
+    /// Main queue only
+    private var isSettingsPushPending = false
+
+    /// Send the current settings to the watch app as the WatchConnectivity application context. The
+    /// latest context is kept by the system and delivered when the watch app runs next, so the watch
+    /// gets the settings even when it is not reachable now. Call it on the main queue.
+    /// - Returns: `true` when the settings were handed to WatchConnectivity, or will be once the session
+    ///   is activated; `false` without a paired watch with the app installed, or on an error.
+    @discardableResult
+    public func pushSettingsToWatch() -> Bool {
+        guard WCSession.isSupported() else { return false }
+        let session = WCSession.default
+        guard session.activationState == .activated else {
+            // Sent once the session is activated
+            isSettingsPushPending = true
+            return true
+        }
+        guard session.isPaired, session.isWatchAppInstalled else { return false }
+        var settings = watchSettings()
+        settings[Self.settingsUpdatedAtKey] = Date().timeIntervalSince1970
+        do {
+            try session.updateApplicationContext(settings)
+            lastCommunicationError = nil
+            return true
+        } catch {
+            lastCommunicationError = error.localizedDescription
+            if CONFIG.debug { print("[AppleWatchSensor] settings push failed: \(error)") }
+            return false
+        }
+    }
+
     public func communicationDebugStatus() -> AWCommunicationDebugStatus {
         guard WCSession.isSupported() else {
             return AWCommunicationDebugStatus(
@@ -1342,6 +1383,12 @@ extension AppleWatchSensor: WCSessionDelegate  {
     public func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         lastCommunicationMessageAt = Date()
         lastCommunicationError = error?.localizedDescription
+        guard activationState == .activated else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.isSettingsPushPending else { return }
+            self.isSettingsPushPending = false
+            self.pushSettingsToWatch()
+        }
     }
     
     public func sessionDidBecomeInactive(_ session: WCSession) {
